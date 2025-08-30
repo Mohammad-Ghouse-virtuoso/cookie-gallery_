@@ -146,7 +146,6 @@ npm run preview
 
 ## 📁 Project Structure
 
-\`\`\`
 cookie-gallery/
 ├── public/
 ├── src/
@@ -179,7 +178,7 @@ cookie-gallery/
 ├── .env
 ├── package.json
 └── README.md
-\`\`\`
+
 
 ## 🔒 Security Features
 
