@@ -151,34 +151,14 @@ cookie-gallery/
 ├── src/
 │   ├── assets/
 │   ├── backend/
-│   │   ├── server.js
-│   │   ├── package.json
-│   │   ├── .env
-│   │   └── firebase-admin-sdk.json
 │   ├── components/
-│   │   ├── CookieCard.tsx
-│   │   ├── Hero.tsx
-│   │   ├── NavBar.tsx
-│   │   ├── ProtectedRoutes.tsx
-│   │   └── ReviewsSection.tsx
 │   ├── context/
-│   │   ├── AuthContext.tsx
-│   │   └── CartContext.tsx
-│   ├── data/
 │   ├── pages/
-│   │   ├── Home.tsx
-│   │   ├── CheckOut.tsx
-│   │   ├── SignIn.tsx
-│   │   ├── OrderSuccess.tsx
-│   │   ├── Story.tsx
-│   │   ├── BehindTheScenes.tsx
-│   │   └── PrivacyPolicy.tsx
-│   ├── types/
-│   └── utils/
+│   └── styles/
 ├── .env
+├── .gitignore
 ├── package.json
 └── README.md
-
 
 ## 🔒 Security Features
 
