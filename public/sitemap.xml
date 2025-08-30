@@ -1,0 +1,9 @@
+<!-- sitemap.xml -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://cookie-gallery.vercel.app/</loc></url>
+  <url><loc>https://cookie-gallery.vercel.app/home</loc></url>
+  <url><loc>https://cookie-gallery.vercel.app/story</loc></url>
+  <url><loc>https://cookie-gallery.vercel.app/checkout</loc></url>
+  <url><loc>https://cookie-gallery.vercel.app/behind-the-scenes</loc></url>
+  <url><loc>https://cookie-gallery.vercel.app/privacy</loc></url>
+</urlset>

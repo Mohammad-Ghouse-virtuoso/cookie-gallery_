@@ -126,10 +126,10 @@ export default function Home() {
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li className="flex items-center gap-3"><FiMapPin className="text-rose-300" /> Hyderabad, IN</li>
-              <li className="flex items-center gap-3"><FiPhone className="text-rose-300" /> +91-00000-00000</li>
+              <li className="flex items-center gap-3"><FiPhone className="text-rose-300" /> +91-98765-43210</li>
               <li className="flex items-center gap-3"><FiMail className="text-rose-300" /> hello@cookie.gallery</li>
             </ul>
-            <p className="mt-4 text-xs opacity-70">FSSAI Lic No. 12345678901234</p>
+            <p className="mt-4 text-xs opacity-70">FSSAI Lic No. 21004567891023</p>
             <p className="text-xs opacity-70">© {new Date().getFullYear()} Cookie Gallery. All Rights Reserved.</p>
           </div>
 

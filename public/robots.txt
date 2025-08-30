@@ -1,0 +1,5 @@
+# robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://cookie-gallery.vercel.app/sitemap.xml

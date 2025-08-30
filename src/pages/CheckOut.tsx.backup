@@ -228,6 +228,9 @@ export default function Checkout() {
           color: "#10B981",
         },
       };
+
+      // Ensure a fresh instance is created every time
+      resetRazorpayCaches();
       const RazorpayCtor = (window as any).Razorpay;
       if (!RazorpayCtor) {
         setMessage('Razorpay SDK not available after load. Please retry.');
