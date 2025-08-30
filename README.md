@@ -1,4 +1,4 @@
-# 🍪 Cookie Gallery
+oo# 🍪 Cookie Gallery
 
 Welcome to the Cookie Gallery, a modern, full-stack e-commerce application for a delightful cookie store. This project features an interactive and animated frontend built with React and a secure backend powered by Node.js for handling payments with Razorpay.
 
