@@ -148,37 +148,37 @@ npm run preview
 
 \`\`\`
 cookie-gallery/
-├── public/                      # Static assets
+├── public/
 ├── src/
-│   ├── assets/                  # Images and media files
-│   ├── backend/                 # Node.js backend server
-│   │   ├── server.js           # Main server file
-│   │   ├── package.json        # Backend dependencies
-│   │   ├── .env                # Backend environment variables
-│   │   └── firebase-admin-sdk.json  # Firebase service account
-│   ├── components/             # Reusable React components
-│   │   ├── CookieCard.tsx      # Individual cookie display
-│   │   ├── Hero.tsx            # Landing page hero section
-│   │   ├── NavBar.tsx          # Navigation component
-│   │   ├── ProtectedRoutes.tsx # Authentication guard
-│   │   └── ReviewsSection.tsx  # Customer testimonials
-│   ├── context/                # React Context providers
-│   │   ├── AuthContext.tsx     # Authentication state management
-│   │   └── CartContext.tsx     # Shopping cart state
-│   ├── data/                   # Static data and configurations
-│   ├── pages/                  # Main application pages
-│   │   ├── Home.tsx            # Landing page
-│   │   ├── CheckOut.tsx        # Payment and checkout
-│   │   ├── SignIn.tsx          # Authentication page
-│   │   ├── OrderSuccess.tsx    # Order confirmation
-│   │   ├── Story.tsx           # About us page
-│   │   ├── BehindTheScenes.tsx # Process showcase
-│   │   └── PrivacyPolicy.tsx   # Privacy information
-│   ├── types/                  # TypeScript type definitions
-│   └── utils/                  # Helper functions
-├── .env                        # Frontend environment variables
-├── package.json               # Frontend dependencies
-└── README.md                  # Project documentation
+│   ├── assets/
+│   ├── backend/
+│   │   ├── server.js
+│   │   ├── package.json
+│   │   ├── .env
+│   │   └── firebase-admin-sdk.json
+│   ├── components/
+│   │   ├── CookieCard.tsx
+│   │   ├── Hero.tsx
+│   │   ├── NavBar.tsx
+│   │   ├── ProtectedRoutes.tsx
+│   │   └── ReviewsSection.tsx
+│   ├── context/
+│   │   ├── AuthContext.tsx
+│   │   └── CartContext.tsx
+│   ├── data/
+│   ├── pages/
+│   │   ├── Home.tsx
+│   │   ├── CheckOut.tsx
+│   │   ├── SignIn.tsx
+│   │   ├── OrderSuccess.tsx
+│   │   ├── Story.tsx
+│   │   ├── BehindTheScenes.tsx
+│   │   └── PrivacyPolicy.tsx
+│   ├── types/
+│   └── utils/
+├── .env
+├── package.json
+└── README.md
 \`\`\`
 
 ## 🔒 Security Features
