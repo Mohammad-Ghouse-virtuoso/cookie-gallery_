@@ -1,46 +1,46 @@
 # 🍪 Cookie Gallery
 
-Welcome to the Cookie Gallery, a modern, full-stack e-commerce application for a delightful cookie store. This project features an interactive and animated frontend built with React, secure authentication with Firebase, and a robust backend powered by Node.js for handling payments with Razorpay integration.
+A modern, full-stack e-commerce application for a cookie store. Built with React, Firebase, and Node.js, it delivers smooth shopping experiences, secure authentication, and seamless payment processing via Razorpay.
 
 ## ✨ Features
 
 ### 🔐 **Authentication & User Management**
-- **Firebase Authentication**: Secure sign-in with Google OAuth and Phone OTP
-- **Protected Routes**: Role-based access control with authentication guards
-- **User Profiles**: Automatic profile creation and management with Firestore
-- **Session Management**: Persistent login state with browser local storage
+- Google OAuth and Phone OTP via Firebase
+- Role-based route protection
+- Automatic profile creation and Firestore integration
+- Persistent login with local storage
 
 ### 🛒 **E-commerce Functionality**
-- **Interactive Cookie Showcase**: Responsive gallery with hover animations using Framer Motion
-- **Dynamic Shopping Cart**: Add, remove, and update quantities with real-time cart management
-- **Secure Payment Integration**: Complete Razorpay payment flow with signature verification
-- **Order Management**: Order creation, verification, and success tracking
-- **Real-time Updates**: Live cart updates and payment status notifications
+- **Real-time cart (add, remove, update quantities)
+- **Razorpay integration with signature verification
+- **Order creation, verification, and tracking
+- **Live updates for cart and payment status
+
 
 ### 🎨 **User Interface & Experience**
-- **Modern Design**: Clean, responsive UI styled with Tailwind CSS
-- **Animated Components**: Smooth transitions and hover effects with Framer Motion
-- **Customer Reviews**: Animated testimonials section with auto-scrolling
-- **Mobile Responsive**: Optimized for all device sizes
-- **Loading States**: Professional loading animations and skeleton screens
+- Clean, responsive design with Tailwind CSS
+- Smooth transitions and hover animations
+- Animated testimonials with auto-scroll
+- Mobile-first design
 
+Loading skeletons and animations
 ### 📱 **Additional Pages & Content**
-- **Story Page**: Learn about the Cookie Gallery journey with interactive timeline
-- **Behind the Scenes**: Detailed look at the cookie-making process
-- **Privacy Policy**: Comprehensive privacy and data handling information
-- **Order Success**: Beautiful confirmation page with order tracking
+- Story (timeline view of brand journey)
+- Behind the Scenes (cookie-making process)
+- Privacy Policy
+- Order Success confirmation with tracking
 
 ## 🛠️ Tech Stack
 
-| Frontend | Backend | Database & Auth | Payment |
-|----------|---------|----------------|---------|
-| [React 19](https://reactjs.org/) | [Node.js](https://nodejs.org/) | [Firebase Auth](https://firebase.google.com/products/auth) | [Razorpay](https://razorpay.com/) |
-| [TypeScript](https://www.typescriptlang.org/) | [Express 5](https://expressjs.com/) | [Firestore](https://firebase.google.com/products/firestore) | Payment Gateway |
-| [Vite 7](https://vitejs.dev/) | [Firebase Admin SDK](https://firebase.google.com/products/admin-sdk) | Real-time Database | Signature Verification |
-| [Tailwind CSS 4](https://tailwindcss.com/) | [Razorpay SDK](https://razorpay.com/docs/) | User Management | Webhook Support |
-| [Framer Motion](https://www.framer.com/motion/) | [CORS](https://www.npmjs.com/package/cors) | Order Storage | |
-| [React Router 7](https://reactrouter.com/) | [Dotenv](https://www.npmjs.com/package/dotenv) | | |
-| [React Icons](https://react-icons.github.io/react-icons/) | Crypto (Built-in) | | |
+| Frontend                                                  | Backend                                                              | Database & Auth                                             | Payment                           |
+| --------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------- |
+| [React 19](https://reactjs.org/)                          | [Node.js](https://nodejs.org/)                                       | [Firebase Auth](https://firebase.google.com/products/auth)  | [Razorpay](https://razorpay.com/) |
+| [TypeScript](https://www.typescriptlang.org/)             | [Express 5](https://expressjs.com/)                                  | [Firestore](https://firebase.google.com/products/firestore) | Signature Verification            |
+| [Vite 7](https://vitejs.dev/)                             | [Firebase Admin SDK](https://firebase.google.com/products/admin-sdk) | Real-time DB                                                | Webhooks                          |
+| [Tailwind CSS 4](https://tailwindcss.com/)                | [Razorpay SDK](https://razorpay.com/docs/)                           | User management                                             |                                   |
+| [Framer Motion](https://www.framer.com/motion/)           | [CORS](https://www.npmjs.com/package/cors)                           |                                                             |                                   |
+| [React Router 7](https://reactrouter.com/)                | [Dotenv](https://www.npmjs.com/package/dotenv)                       |                                                             |                                   |
+| [React Icons](https://react-icons.github.io/react-icons/) | Built-in Node Crypto                                                 |                                                             |                                   |
 
 ## 🚀 Getting Started
 
@@ -53,22 +53,18 @@ Welcome to the Cookie Gallery, a modern, full-stack e-commerce application for a
 
 ### Installation & Setup
 
-1. **Clone the repository:**
-   \`\`\`bash
-   git clone https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery.git
-   cd cookie-gallery
-   \`\`\`
+# Clone repo
+git clone https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery.git
+cd cookie-gallery
 
-2. **Install Dependencies:**
-   \`\`\`bash
-   # Install frontend dependencies
-   npm install
-   
-   # Install backend dependencies
-   cd src/backend
-   npm install
-   cd ../..
-   \`\`\`
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd src/backend
+npm install
+cd ../..
+
 
 ### Environment Configuration
 
@@ -151,12 +147,31 @@ cookie-gallery/
 ├── src/
 │   ├── assets/
 │   ├── backend/
+│   │   ├── server.js
+│   │   ├── package.json
+│   │   ├── .env
+│   │   └── firebase-admin-sdk.json
 │   ├── components/
+│   │   ├── CookieCard.tsx
+│   │   ├── Hero.tsx
+│   │   ├── NavBar.tsx
+│   │   ├── ProtectedRoutes.tsx
+│   │   └── ReviewsSection.tsx
 │   ├── context/
+│   │   ├── AuthContext.tsx
+│   │   └── CartContext.tsx
+│   ├── data/
 │   ├── pages/
-│   └── styles/
+│   │   ├── Home.tsx
+│   │   ├── CheckOut.tsx
+│   │   ├── SignIn.tsx
+│   │   ├── OrderSuccess.tsx
+│   │   ├── Story.tsx
+│   │   ├── BehindTheScenes.tsx
+│   │   └── PrivacyPolicy.tsx
+│   ├── types/
+│   └── utils/
 ├── .env
-├── .gitignore
 ├── package.json
 └── README.md
 
