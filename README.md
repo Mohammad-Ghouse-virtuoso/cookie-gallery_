@@ -68,16 +68,10 @@ cd ../..
 
 ### Environment Configuration
 
-#### 1. **Frontend Environment (\`.env\`):**
-\`\`\`env
-# App Configuration
 VITE_APP_TITLE=Cookie Gallery
 VITE_API_BASE_URL=http://localhost:5000
-
-# Razorpay Configuration
 VITE_RAZORPAY_KEY_ID=rzp_test_YourPublicKeyHere
 
-# Firebase Configuration
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your-project-id
@@ -86,25 +80,20 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
-# Development Options
 VITE_SHOW_AUTH_DIAGNOSTICS=true
-\`\`\`
+
 
 #### 2. **Backend Environment (\`src/backend/.env\`):**
-\`\`\`env
-# Razorpay Configuration
 RAZORPAY_KEY_ID=rzp_test_YourPublicKeyHere
 RAZORPAY_KEY_SECRET=YourSecretKeyHere
 
-# Firebase Admin Configuration
 FIREBASE_PROJECT_ID=your-project-id
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@your-project.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourPrivateKeyHere\n-----END PRIVATE KEY-----\n"
 
-# Server Configuration
 CORS_ORIGIN=http://localhost:5173
 PORT=5000
-\`\`\`
+
 
 #### 3. **Firebase Service Account Setup:**
 - Download your Firebase service account JSON file
@@ -175,6 +164,7 @@ cookie-gallery/
 ├── package.json
 └── README.md
 
+
 ## 🔒 Security Features
 
 - **Firebase Authentication**: Industry-standard auth with OAuth2
@@ -196,29 +186,11 @@ cookie-gallery/
 - \`POST /save-order-data\` - Store order in database
 - \`POST /api/razorpay-webhook\` - Handle payment webhooks
 
-## 🚀 Deployment
-
-### Frontend (Vercel)
-\`\`\`bash
-# Build for production
-npm run build
-
-# Deploy to Vercel
-vercel --prod
-\`\`\`
-
-### Backend (Railway/Heroku)
-\`\`\`bash
-# From src/backend directory
-npm start
-\`\`\`
-
 ## 📱 Contact Information
 
 - **Location**: Hyderabad, IN
 - **Phone**: +91-98765-43210
 - **Email**: hello@cookie.gallery
-- **FSSAI License**: 21004567891023
 
 ## 🤝 Contributing
 
@@ -239,6 +211,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Tailwind CSS for beautiful styling
 - Framer Motion for smooth animations
 - React team for the amazing framework
+- Gemini, Cursor, Augment Code, Perplexity, Grok
 
 ---
 
