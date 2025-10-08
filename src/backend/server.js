@@ -2,7 +2,7 @@
 // server.js
 
 const express = require('express');
-const Razorpay = require('razorpay');
+const Stripe = require('stripe');
 const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
@@ -84,22 +84,18 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-// Initialize Razorpay instance (optional)
-let razorpay = null;
-const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
-const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
-if (RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET) {
+// Initialize Stripe instance
+let stripeInstance = null;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (STRIPE_SECRET_KEY) {
   try {
-    razorpay = new Razorpay({
-      key_id: RAZORPAY_KEY_ID,
-      key_secret: RAZORPAY_KEY_SECRET,
-    });
-    console.log('Razorpay initialized: Payments enabled.');
+    stripeInstance = Stripe(STRIPE_SECRET_KEY);
+    console.log('Stripe initialized: Payments enabled.');
   } catch (e) {
-    console.warn('Failed to initialize Razorpay, payments disabled:', e.message);
+    console.warn('Failed to initialize Stripe, payments disabled:', e.message);
   }
 } else {
-  console.warn('Razorpay credentials missing. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET. /create-order will be disabled.');
+  console.warn('Stripe credentials missing. Set STRIPE_SECRET_KEY. /create-payment-intent will be disabled.');
 }
 // Health endpoint exposes a non-sensitive boot id so client can detect backend restarts
 app.get('/health', (req, res) => {
@@ -132,8 +128,8 @@ app.get('/', (req, res) => {
   res.status(200).send('Cookie Gallery Backend API is alive and kicking! Ready for payment processing.');
 });
 
-app.post('/create-order', async (req, res) => {
-  if (!razorpay) {
+app.post('/create-payment-intent', async (req, res) => {
+  if (!stripeInstance) {
     return res.status(503).json({ message: 'Payments not configured on server.' });
   }
   const { amount, currency } = req.body;
@@ -141,20 +137,30 @@ app.post('/create-order', async (req, res) => {
     return res.status(400).json({ message: 'Amount and currency are required.' });
   }
   try {
-    const options = {
-      amount: amount * 100,
-      currency: currency,
-      receipt: `receipt_order_${Date.now()}`,
-      payment_capture: 1
-    };
-    const order = await razorpay.orders.create(options);
-    if (!order) {
-      return res.status(500).json({ message: 'Error creating order with Razorpay.' });
+    // Convert amount to smallest currency unit (cents for USD, paise for INR)
+    const amountInCents = Math.round(amount * 100);
+    
+    const paymentIntent = await stripeInstance.paymentIntents.create({
+      amount: amountInCents,
+      currency: currency.toLowerCase(),
+      payment_method_types: ['card'],
+      // Disable automatic payment methods to prevent Link
+      automatic_payment_methods: {
+        enabled: false,
+      },
+    });
+    
+    if (!paymentIntent) {
+      return res.status(500).json({ message: 'Error creating payment intent with Stripe.' });
     }
-    res.status(200).json(order);
+    
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id
+    });
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    res.status(500).json({ message: "Failed to create Razorpay order.", error: error.message });
+    console.error('Error creating Stripe payment intent:', error);
+    res.status(500).json({ message: "Failed to create Stripe payment intent.", error: error.message });
   }
 });
 
@@ -186,6 +192,65 @@ app.post('/save-user', requireAuth, async (req, res) => {
   }
 });
 
+// New endpoint to retrieve payment intent details with expanded data
+// @route   POST /get-payment-details
+// @desc    Retrieves full payment intent details including payment method and charges
+app.post('/get-payment-details', requireAuth, async (req, res) => {
+  if (!stripeInstance) {
+    return res.status(503).json({ message: 'Stripe not configured on server.' });
+  }
+  
+  const { paymentIntentId } = req.body;
+  
+  if (!paymentIntentId) {
+    return res.status(400).json({ message: 'Payment Intent ID is required.' });
+  }
+  
+  try {
+    console.log('🔍 Retrieving payment details for:', paymentIntentId);
+    
+    // Retrieve payment intent with expanded payment_method
+    const paymentIntent = await stripeInstance.paymentIntents.retrieve(
+      paymentIntentId,
+      { expand: ['payment_method', 'latest_charge'] }
+    );
+    
+    // Extract safe payment method details
+    const paymentMethod = paymentIntent.payment_method;
+    const charge = paymentIntent.latest_charge;
+    
+    const paymentDetails = {
+      // Card details (safe - no sensitive data)
+      cardBrand: paymentMethod?.card?.brand || null,
+      cardLast4: paymentMethod?.card?.last4 || null,
+      cardCountry: paymentMethod?.card?.country || null,
+      cardExpMonth: paymentMethod?.card?.exp_month || null,
+      cardExpYear: paymentMethod?.card?.exp_year || null,
+      cardFunding: paymentMethod?.card?.funding || null, // credit/debit/prepaid
+      
+      // Billing details
+      customerName: paymentMethod?.billing_details?.name || null,
+      customerEmail: paymentMethod?.billing_details?.email || null,
+      customerPhone: paymentMethod?.billing_details?.phone || null,
+      
+      // Transaction metadata
+      paymentMethodId: paymentIntent.payment_method?.id || paymentIntent.payment_method || null,
+      receiptUrl: charge?.receipt_url || null,
+      chargeId: charge?.id || null,
+    };
+    
+    console.log('✅ Payment details retrieved successfully');
+    res.status(200).json({ success: true, paymentDetails });
+  } catch (error) {
+    console.error('❌ Error retrieving payment details:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to retrieve payment details.', 
+      error: error.message 
+    });
+  }
+});
+
 // New Endpoint to save payment data to Firestore
 // @route   POST /save-order-data
 // @desc    Saves user and payment data to Firestore
@@ -193,9 +258,31 @@ app.post('/save-order-data', requireAuth, async (req, res) => {
   if (!adminDb) {
     return res.status(503).json({ success: false, message: 'Firestore not configured on server.' });
   }
-  const { orderId, items, paymentStatus, paymentAmount, paymentCurrency } = req.body;
+  const { 
+    paymentIntentId, 
+    items, 
+    paymentStatus, 
+    paymentAmount, 
+    paymentCurrency,
+    // Payment method details
+    cardBrand,
+    cardLast4,
+    cardCountry,
+    cardExpMonth,
+    cardExpYear,
+    cardFunding,
+    // Billing details
+    customerName,
+    customerEmail,
+    customerPhone,
+    // Transaction metadata
+    paymentMethodId,
+    receiptUrl,
+    chargeId,
+    orderStatus
+  } = req.body;
 
-  if (!orderId || !items || !paymentStatus) {
+  if (!paymentIntentId || !items || !paymentStatus) {
     return res.status(400).json({ message: 'Missing required order data.' });
   }
 
@@ -205,71 +292,56 @@ app.post('/save-order-data', requireAuth, async (req, res) => {
   const userId = String(req.user.email).toLowerCase();
 
   try {
-    const orderRef = adminDb.collection('orders').doc(orderId);
+    console.log('💾 Saving order data for user:', userId);
+    console.log('💳 Payment Intent ID:', paymentIntentId);
+    console.log('🍪 Items:', JSON.stringify(items));
+    console.log('💳 Card:', cardBrand, 'ending in', cardLast4);
+    
+    const orderRef = adminDb.collection('orders').doc(paymentIntentId);
     await orderRef.set({
+      // User information
       userId,
+      userEmail: req.user.email,
+      
+      // Order details
       items,
+      orderStatus: orderStatus || 'pending',
+      
+      // Payment information
+      paymentIntentId,
       paymentStatus,
-      payment_amount: typeof paymentAmount === 'number' ? paymentAmount : null,
-      payment_currency: paymentCurrency || 'INR',
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      paymentAmount: typeof paymentAmount === 'number' ? paymentAmount : null,
+      paymentCurrency: paymentCurrency || 'INR',
+      paymentMethodId: paymentMethodId || null,
+      
+      // Card details (safe - no sensitive data)
+      cardBrand: cardBrand || null,
+      cardLast4: cardLast4 || null,
+      cardCountry: cardCountry || null,
+      cardExpMonth: cardExpMonth || null,
+      cardExpYear: cardExpYear || null,
+      cardFunding: cardFunding || null, // credit/debit/prepaid
+      
+      // Customer billing details
+      customerName: customerName || null,
+      customerEmail: customerEmail || null,
+      customerPhone: customerPhone || null,
+      
+      // Receipt and tracking
+      receiptUrl: receiptUrl || null,
+      chargeId: chargeId || null,
+      
+      // Timestamps
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+    
+    console.log('✅ Order data saved successfully to Firestore with enhanced metadata');
     res.status(200).json({ success: true, message: 'Order data saved successfully.' });
   } catch (error) {
-    console.error('Error saving order data:', error);
-    res.status(500).json({ success: false, message: 'Failed to save order data.' });
-  }
-});
-
-app.post('/verify-signature', (req, res) => {
-  const { order_id, razorpay_payment_id, razorpay_signature } = req.body;
-  const secret = process.env.RAZORPAY_KEY_SECRET;
-
-  if (!order_id || !razorpay_payment_id || !razorpay_signature || !secret) {
-      return res.status(400).json({ success: false, message: "Missing required verification data." });
-  }
-  const generated_signature = crypto
-    .createHmac('sha256', secret)
-    .update(order_id + "|" + razorpay_payment_id)
-    .digest('hex');
-
-  if (generated_signature === razorpay_signature) {
-    console.log('Payment signature verified successfully (Frontend to Backend)!');
-    res.status(200).json({ success: true, message: "Payment has been verified" });
-  } else {
-    console.error('Payment signature verification failed (Frontend to Backend)!');
-    res.status(400).json({ success: false, message: 'Invalid signature' });
-  }
-});
-
-// IMPORTANT: This path must match the URL you configure in the Razorpay Dashboard (via ngrok for local dev)
-app.post('/api/razorpay-webhook', (req, res) => {
-  const WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
-
-  if (!WEBHOOK_SECRET) {
-      console.error('RAZORPAY_WEBHOOK_SECRET is not set in environment variables!');
-      return res.status(500).send('Webhook secret not configured.');
-  }
-  const shasum = crypto.createHmac('sha256', WEBHOOK_SECRET);
-  shasum.update(JSON.stringify(req.body));
-  const digest = shasum.digest('hex');
-
-  if (digest === req.headers['x-razorpay-signature']) {
-    console.log('Webhook signature verified successfully (Razorpay to Backend)!');
-    const event = req.body.event;
-    const payment = req.body.payload.payment.entity;
-    if (event === 'payment.captured') {
-      console.log('Payment Captured Event (from Webhook):', payment.id, payment.order_id, payment.amount);
-      // **This is the most reliable place to update your database:**
-      // Mark order as paid, store payment_id, update inventory, send confirmation email, etc.
-      // Example: updateOrderInDb(payment.order_id, payment.id, 'paid');
-    } else if (event === 'payment.failed') {
-      console.log('Payment Failed Event (from Webhook):', payment.id, payment.order_id);
-    }
-    res.status(200).send('Webhook received and processed.');
-  } else {
-    console.error('Webhook signature verification failed (Razorpay to Backend)!');
-    res.status(403).send('Invalid signature');
+    console.error('❌ Error saving order data:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to save order data.', error: error.message });
   }
 });
 
