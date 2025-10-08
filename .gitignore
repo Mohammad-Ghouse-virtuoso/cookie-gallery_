@@ -26,6 +26,7 @@ dist/
 build/
 out/
 *.tsbuildinfo
+.dockerignore
 
 # Logs
 # Logs are machine-specific and not part of the source code
