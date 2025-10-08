@@ -48,3 +48,12 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Documentation files (local notes)
+*.md
+!README.md
+
+# Video files
+*.mp4
+*.mov
+*.avi
