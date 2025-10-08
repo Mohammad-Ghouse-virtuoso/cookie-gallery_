@@ -2,16 +2,16 @@
 import { motion } from 'framer-motion';
 
 export type ReviewItem = { id: number; name: string; rating: number; text: string; avatar: string };
-import avatar1 from '../assets/joseph_pfp.jpg';
+import avatar1 from '../assets/Shayan_image.png';
 import avatar2 from '../assets/rahul_pfp.jpg';
 import avatar3 from '../assets/x_pfp.jpg';
 import avatar4 from '../assets/Bharathi_pfp.jpg';
 
 const defaultReviews: ReviewItem[] = [
-  { id: 1, name: 'Joseph', rating: 5, text: 'Absolutely delicious! The choco-chip melts in your mouth. Will order again!', avatar: avatar1 },
+  { id: 1, name: 'Shayan', rating: 5, text: 'Absolutely delicious! The choco-chip melts in your mouth. Will order again!', avatar: avatar1 },
   { id: 2, name: 'Rahul', rating: 4, text: 'Crunchy outside, gooey inside. Perfect with evening tea!', avatar: avatar2 },
   { id: 3, name: 'Sana', rating: 5, text: 'Best cookies in town. Loved the packaging too!', avatar: avatar3 },
-  { id: 4, name: 'Bharathi', rating: 4, text: 'Tried the almond crunch—so good! Will recommend to friends.', avatar: avatar4 },
+  { id: 4, name: 'Aradhya', rating: 4, text: 'Tried the almond crunch—so good! Will recommend to friends.', avatar: avatar4 },
 ];
 
 const Star = ({ filled }: { filled: boolean }) => (
