@@ -60,7 +60,7 @@ export default function Checkout() {
             <p className="text-lg text-gray-600">You need to be signed in to proceed to payment.</p>
             <button
               onClick={() => navigate('/signin')}
-              className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded-xl shadow-lg transition-all duration-200"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-xl shadow-lg transition-all duration-200"
             >
               Go to Sign In
             </button>
@@ -85,14 +85,14 @@ export default function Checkout() {
                   <div className="text-gray-500">Quantity: {cart[cookie.id]}</div>
                 </div>
               </div>
-              <div className="font-bold text-xl text-teal-700">{formatPrice(cookie.price * cart[cookie.id])}</div>
+              <div className="font-bold text-xl text-indigo-700">{formatPrice(cookie.price * cart[cookie.id])}</div>
             </div>
           ))}
         </div>
 
         <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
           <span className="text-2xl font-bold text-gray-800">Total</span>
-          <span className="text-3xl font-extrabold text-teal-800">{formatPrice(totalAmount)}</span>
+          <span className="text-3xl font-extrabold text-indigo-800">{formatPrice(totalAmount)}</span>
         </div>
 
                 <CheckoutFormWrapper 
@@ -116,7 +116,6 @@ interface CheckoutFormWrapperProps {
 
 function CheckoutFormWrapper({ totalAmount, cart, user, setPaymentCompleted }: CheckoutFormWrapperProps) {
   const [clientSecret, setClientSecret] = useState<string>('');
-  const [paymentIntentId, setPaymentIntentId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -167,7 +166,6 @@ function CheckoutFormWrapper({ totalAmount, cart, user, setPaymentCompleted }: C
       const data = await response.json();
       console.log("Payment intent created successfully:", data.paymentIntentId);
       setClientSecret(data.clientSecret);
-      setPaymentIntentId(data.paymentIntentId);
       setIsCreating(false);
     } catch (err) {
       console.error("Error creating payment intent:", err);
@@ -188,8 +186,8 @@ function CheckoutFormWrapper({ totalAmount, cart, user, setPaymentCompleted }: C
         <button
           onClick={createPaymentIntent}
           disabled={isCreating}
-          className={`w-full text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-teal-300
-            ${isCreating ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 hover:scale-105 active:scale-95'}`}
+          className={`w-full text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-300
+            ${isCreating ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95'}`}
         >
           {isCreating ? 'Initializing Payment...' : 'Proceed to Pay'}
         </button>
@@ -209,8 +207,6 @@ function CheckoutFormWrapper({ totalAmount, cart, user, setPaymentCompleted }: C
       <CheckoutForm 
         totalAmount={totalAmount} 
         cart={cart} 
-        user={user} 
-        paymentIntentId={paymentIntentId}
         setPaymentCompleted={setPaymentCompleted}
       />
     </Elements>
@@ -221,12 +217,10 @@ function CheckoutFormWrapper({ totalAmount, cart, user, setPaymentCompleted }: C
 interface CheckoutFormProps {
   totalAmount: number;
   cart: Record<number, number>;
-  user: any;
-  paymentIntentId: string;
   setPaymentCompleted: (completed: boolean) => void;
 }
 
-function CheckoutForm({ totalAmount, cart, user, paymentIntentId, setPaymentCompleted }: CheckoutFormProps) {
+function CheckoutForm({ totalAmount, cart, setPaymentCompleted }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -292,7 +286,7 @@ function CheckoutForm({ totalAmount, cart, user, paymentIntentId, setPaymentComp
           setPaymentSucceeded(true);
           setPaymentCompleted(true); // Prevent empty cart redirect
           setIsProcessing(false);
-          setMessage(`✅ Payment Successful!`);
+          setMessage(`🎉 Payment Successful! Payment ID: ${paymentIntent.id.substring(0, 20)}...`);
           
           try {
             const token = await getIdToken();
@@ -390,20 +384,20 @@ function CheckoutForm({ totalAmount, cart, user, paymentIntentId, setPaymentComp
       )}
 
       {paymentSucceeded && (
-        <div className="p-6 bg-gradient-to-r from-green-400 to-emerald-500 rounded-xl shadow-lg text-center">
-          <div className="text-4xl mb-2">🎉</div>
-          <h2 className="text-xl font-bold text-white mb-1">Payment Successful!</h2>
-          <p className="text-white text-sm">Redirecting to order confirmation...</p>
+        <div className="p-5 bg-green-500/90 rounded-xl shadow-xl text-center">
+          <div className="text-4xl mb-2">✅</div>
+          <h2 className="text-2xl font-semibold text-white">Payment successful</h2>
+          <p className="text-white/90 text-sm">Redirecting to order details…</p>
         </div>
       )}
 
       {message && (
-        <div className={`mt-4 p-4 rounded-xl text-center font-semibold text-lg ${
+        <div className={`mt-3 p-3 rounded-lg text-center font-medium text-base ${
           message.includes('🎉') || message.includes('Successful') 
-            ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-2 border-green-500' 
+            ? 'bg-green-50 text-green-800 border border-green-400' 
             : message.includes('❌') || message.includes('failed')
-            ? 'bg-red-100 text-red-700 border-2 border-red-500'
-            : 'bg-yellow-100 text-yellow-700 border-2 border-yellow-500'
+            ? 'bg-red-50 text-red-700 border border-red-400'
+            : 'bg-yellow-50 text-yellow-700 border border-yellow-400'
         }`}>
           {message}
         </div>
@@ -413,8 +407,8 @@ function CheckoutForm({ totalAmount, cart, user, paymentIntentId, setPaymentComp
         <button
           type="submit"
           disabled={isProcessing || !stripe || !elements}
-          className={`w-full text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-teal-300
-            ${isProcessing || !stripe || !elements ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700 hover:scale-105 active:scale-95'}`}
+          className={`w-full text-white text-xl font-bold py-4 px-6 rounded-xl shadow-lg transform transition-all duration-300 ease-in-out focus:outline-none focus:ring-4 focus:ring-indigo-300
+            ${isProcessing || !stripe || !elements ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 hover:scale-105 active:scale-95'}`}
         >
           {isProcessing ? (
             <span className="flex items-center justify-center">

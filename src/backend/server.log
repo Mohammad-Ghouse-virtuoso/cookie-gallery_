@@ -1,3 +1,13 @@
 nohup: ignoring input
-[dotenv@17.2.1] injecting env (2) from .env -- tip: 📡 observe env with Radar: https://dotenvx.com/radar
-Backend server is running on http://localhost:5000
+[dotenv@17.2.1] injecting env (5) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+[dotenv@17.2.1] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+Firebase Admin initialized for Auth and Firestore.
+Stripe initialized: Payments enabled.
+Backend server running on http://localhost:5000
+🔍 Retrieving payment details for: pi_3SGLqyQCZwi4pJX5025Bj2lz
+✅ Payment details retrieved successfully
+💾 Saving order data for user: shaikmohammod0@gmail.com
+💳 Payment Intent ID: pi_3SGLqyQCZwi4pJX5025Bj2lz
+🍪 Items: {"ginger-cookie":2,"peanut-cookie":2}
+💳 Card: visa ending in 4242
+✅ Order data saved successfully to Firestore with enhanced metadata

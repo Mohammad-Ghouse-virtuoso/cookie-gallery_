@@ -22,7 +22,7 @@ export default function NavBar() {
       {/* Logo and Site Title */}
       <div className="flex items-center space-x-2">
         <FaCookieBite className="text-indigo-400 text-3xl" />
-        <Link to="/" className="text-2xl font-extrabold text-gray-800 hover:text-teal-700 transition-colors">
+        <Link to="/" className="text-2xl font-extrabold text-gray-800 hover:text-indigo-700 transition-colors">
           Cookie Gallery 🍪
         </Link>
       </div>
@@ -41,15 +41,15 @@ export default function NavBar() {
           <>
             <Link
               to="/"
-              className="px-5 py-2 sm:px-4 sm:py-2 rounded-full text-gray-700 hover:bg-orange-200 hover:text-teal-800 font-medium transition-all duration-200 text-base sm:text-lg"
+              className="px-5 py-2 sm:px-4 sm:py-2 rounded-full text-gray-700 hover:bg-orange-200 hover:text-indigo-800 font-medium transition-all duration-200 text-base sm:text-lg"
             >
               Home
             </Link>
             <Link
               to="/checkout"
-              className="px-3 py-2 sm:px-4 sm:py-2 rounded-full text-gray-700 hover:bg-orange-200 hover:text-teal-800 font-medium transition-all duration-200 text-base sm:text-lg"
+              className="px-3 py-2 sm:px-4 sm:py-2 rounded-full text-gray-700 hover:bg-orange-200 hover:text-indigo-800 font-medium transition-all duration-200 text-base sm:text-lg"
             >
-              Checkout
+              My Cart
             </Link>
 
             {/* Signed-in identity avatar (hover to reveal email) */}
@@ -57,7 +57,7 @@ export default function NavBar() {
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-white" />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-teal-600 text-white font-semibold flex items-center justify-center shadow-sm">
+                <div className="w-9 h-9 rounded-full bg-indigo-600 text-white font-semibold flex items-center justify-center shadow-sm">
                   {(user?.email || 'C').slice(0,1).toUpperCase()}
                 </div>
               )}

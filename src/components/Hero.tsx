@@ -1,7 +1,12 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { FaArrowRight } from 'react-icons/fa';
-import heroImage from '../assets/Cookie-Hero Card.png'; // IMPORTANT: Ensure this path is correct and image exists
+// Modern responsive sources for hero image
+// Generates AVIF/WEBP/PNG variants at common widths
+// Types are provided by vite-imagetools
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - imagetools virtual module
+import heroPicture from '../assets/Cookie-Hero Card.png?as=picture&format=avif;webp;png&width=800;1200&quality=70';
 
 export default function Hero() {
   return (
@@ -42,15 +47,24 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="flex justify-center"
         >
-          <img 
-            src={heroImage} 
-            alt="A delicious platter of assorted cookies" 
-            className={`
-              w-full max-w-md md:max-w-full rounded-2xl object-cover
-              transform origin-center
-              shadow-[0_20px_60px_rgba(0,0,0,0.25)] ring-1 ring-white/40 rotate-3 transition-transform duration-500 ease-in-out hover:rotate-0 hover:scale-105
-            `}
-          />
+          <picture>
+            {heroPicture.sources?.map((s: any) => (
+              <source key={s.type} type={s.type} srcSet={s.srcset} />
+            ))}
+            <img
+              src={heroPicture.img?.src || heroPicture?.src}
+              alt="A delicious platter of assorted cookies"
+              width="800"
+              height="600"
+              decoding="async"
+              fetchPriority="high"
+              className={`
+                w-full max-w-md md:max-w-full rounded-2xl object-cover
+                transform origin-center
+                shadow-[0_20px_60px_rgba(0,0,0,0.25)] ring-1 ring-white/40 rotate-3 transition-transform duration-500 ease-in-out hover:rotate-0 hover:scale-105
+              `}
+            />
+          </picture>
         </motion.div>
       </div>
 

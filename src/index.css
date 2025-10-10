@@ -1,8 +1,5 @@
 /* src/index.css */
 
-/* Import Inter font with bold weight from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
 /* Keep Tailwind import here as the primary global stylesheet */
 @import "tailwindcss";
 

@@ -208,37 +208,64 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
   
   try {
     console.log('🔍 Retrieving payment details for:', paymentIntentId);
-    
-    // Retrieve payment intent with expanded payment_method
+
+    // Retrieve payment intent with expanded payment_method and latest_charge for robust access
     const paymentIntent = await stripeInstance.paymentIntents.retrieve(
       paymentIntentId,
       { expand: ['payment_method', 'latest_charge'] }
     );
-    
-    // Extract safe payment method details
-    const paymentMethod = paymentIntent.payment_method;
-    const charge = paymentIntent.latest_charge;
-    
+
+    // Normalize payment method as an object (expand if needed)
+    let paymentMethod = paymentIntent.payment_method;
+    if (paymentMethod && typeof paymentMethod === 'string') {
+      try {
+        paymentMethod = await stripeInstance.paymentMethods.retrieve(paymentMethod);
+      } catch (pmErr) {
+        console.warn('⚠️ Could not expand payment method, continuing with charge details fallback:', pmErr.message);
+        paymentMethod = null;
+      }
+    }
+
+    // Normalize charge (prefer latest_charge)
+    let charge = paymentIntent.latest_charge;
+    if (charge && typeof charge === 'string') {
+      try {
+        charge = await stripeInstance.charges.retrieve(charge);
+      } catch (chErr) {
+        console.warn('⚠️ Could not expand latest_charge:', chErr.message);
+        charge = null;
+      }
+    }
+
+    // Build safe details with fallbacks
     const paymentDetails = {
       // Card details (safe - no sensitive data)
-      cardBrand: paymentMethod?.card?.brand || null,
-      cardLast4: paymentMethod?.card?.last4 || null,
+      cardBrand: paymentMethod?.card?.brand
+        || charge?.payment_method_details?.card?.brand
+        || null,
+      cardLast4: paymentMethod?.card?.last4
+        || charge?.payment_method_details?.card?.last4
+        || null,
       cardCountry: paymentMethod?.card?.country || null,
       cardExpMonth: paymentMethod?.card?.exp_month || null,
       cardExpYear: paymentMethod?.card?.exp_year || null,
-      cardFunding: paymentMethod?.card?.funding || null, // credit/debit/prepaid
-      
+      cardFunding: paymentMethod?.card?.funding
+        || charge?.payment_method_details?.card?.funding
+        || null, // credit/debit/prepaid
+
       // Billing details
       customerName: paymentMethod?.billing_details?.name || null,
       customerEmail: paymentMethod?.billing_details?.email || null,
       customerPhone: paymentMethod?.billing_details?.phone || null,
-      
+
       // Transaction metadata
-      paymentMethodId: paymentIntent.payment_method?.id || paymentIntent.payment_method || null,
+      paymentMethodId: (typeof paymentIntent.payment_method === 'object'
+        ? paymentIntent.payment_method?.id
+        : paymentIntent.payment_method) || null,
       receiptUrl: charge?.receipt_url || null,
       chargeId: charge?.id || null,
     };
-    
+
     console.log('✅ Payment details retrieved successfully');
     res.status(200).json({ success: true, paymentDetails });
   } catch (error) {

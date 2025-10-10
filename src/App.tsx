@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 // Import all of your components
 import NavBar from "./components/NavBar";
 import Home from "./pages/Home";
+import CookieCatalogue from "./pages/CookieCatalogue";
 import Checkout from "./pages/CheckOut";
 import OrderSuccess from "./pages/OrderSuccess";
 import SignIn from "./pages/SignIn";
@@ -40,6 +41,7 @@ function AppContent() {
           {/* Explicit home route to support navigate('/home') after sign-in */}
           <Route index element={<Home />} />
           <Route path="home" element={<Home />} />
+          <Route path="cookies" element={<CookieCatalogue />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="story" element={<Story />} />
           <Route path="behind-the-scenes" element={<BehindTheScenes />} />

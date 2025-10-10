@@ -1,0 +1,201 @@
+nohup: ignoring input
+
+> cookie-gallery@0.0.0 dev
+> vite
+
+
+  VITE v7.1.0  ready in 1906 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+4:20:42 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/pages/CheckOut.tsx, /src/index.css
+4:20:59 PM [vite] (client) hmr update /src/components/NavBar.tsx, /src/index.css
+4:21:44 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+4:22:06 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:22:23 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:22:38 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:22:49 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:26:33 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:26:33 PM [vite] (client) hmr update /src/components/NavBar.tsx, /src/index.css
+4:26:33 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+4:26:33 PM [vite] (client) hmr update /src/App.tsx, /src/index.css
+4:26:33 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:30:10 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:30:47 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+4:31:52 PM [vite] (client) hmr update /src/components/NavBar.tsx, /src/index.css
+4:32:05 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:32:19 PM [vite] (client) hmr update /src/components/CookieCard.tsx, /src/index.css
+4:32:43 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/index.css
+4:33:04 PM [vite] (client) hmr update /src/pages/SignIn.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/components/NavBar.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/components/CookieCard.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/pages/SignIn.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+4:34:17 PM [vite] (client) hmr update /src/pages/Home.tsx, /src/index.css
+4:36:31 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:36:32 PM [vite] (client) Pre-transform error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+4:36:32 PM [vite] Internal server error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+      at failureErrorWithLog (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:1467:15)
+      at /home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:736:50
+      at responseCallbacks.<computed> (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:603:9)
+      at handleIncomingPacket (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:658:12)
+      at Socket.readFromStdout (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:581:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+4:36:32 PM [vite] (client) Pre-transform error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+4:37:03 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:37:03 PM [vite] (client) Pre-transform error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+4:37:03 PM [vite] (client) Pre-transform error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+4:37:03 PM [vite] Internal server error: Transform failed with 1 error:
+/home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20: ERROR: Expected "]" but found ":"
+  Plugin: vite:esbuild
+  File: /home/mohx-nova/cookie-gallery/src/data/cookies.ts:43:20
+  
+  Expected "]" but found ":"
+  41 |  
+  42 |    export const cookies: CookieData [] = [
+  43 |        dietPreference: 'Vegetarian (Eggless)'
+     |                      ^
+  44 |      {
+  45 |        id: 'choco-cookie',
+  
+      at failureErrorWithLog (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:1467:15)
+      at /home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:736:50
+      at responseCallbacks.<computed> (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:603:9)
+      at handleIncomingPacket (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:658:12)
+      at Socket.readFromStdout (/home/mohx-nova/cookie-gallery/node_modules/esbuild/lib/main.js:581:7)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5)
+      at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)
+4:38:50 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:41:36 PM [vite] (client) hmr update /src/components/CookieDetailModal.tsx, /src/index.css
+4:43:49 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/index.css
+4:44:41 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/index.css
+4:44:41 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:44:41 PM [vite] (client) hmr update /src/components/CookieDetailModal.tsx, /src/index.css
+4:48:14 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:48:28 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:49:33 PM [vite] (client) hmr update /src/pages/CheckOut.tsx, /src/pages/CookieCatalogue.tsx, /src/index.css
+4:52:30 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+4:52:39 PM [vite] (client) hmr update /src/components/CookieCard.tsx, /src/index.css
+6:26:48 PM [vite] (client) hmr update /src/components/CookieCard.tsx, /src/index.css
+6:26:48 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+6:53:12 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+6:53:24 PM [vite] (client) hmr update /src/components/CookieDetailModal.tsx, /src/index.css
+7:05:17 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:05:17 PM [vite] (client) hmr update /src/components/CookieDetailModal.tsx, /src/index.css
+7:20:05 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:21:20 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:23:11 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:23:11 PM [vite] (client) hmr update /src/index.css, /src/components/ui/button.tsx
+7:27:37 PM [vite] changed tsconfig file detected: /home/mohx-nova/cookie-gallery/tsconfig.app.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+7:27:37 PM [vite] (client) hmr update /src/index.css
+7:27:50 PM [vite] vite.config.ts changed, restarting server...
+7:27:50 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+7:27:51 PM [vite] server restarted.
+7:28:08 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:29:35 PM [vite] (client) hmr update /src/index.css
+7:30:08 PM [vite] (client) hmr update /src/index.css, /src/components/ui/button.tsx
+7:30:09 PM [vite] (client) ✨ new dependencies optimized: clsx, tailwind-merge
+7:30:09 PM [vite] (client) ✨ optimized dependencies changed. reloading
+7:30:36 PM [vite] (client) hmr update /src/index.css, /src/pages/CookieCatalogue.tsx, /src/pages/CheckOut.tsx
+7:30:44 PM [vite] (client) hmr update /src/index.css, /src/pages/CookieCatalogue.tsx, /src/pages/CheckOut.tsx
+7:32:13 PM [vite] (client) hmr update /src/index.css, /src/pages/CookieCatalogue.tsx, /src/pages/CheckOut.tsx
+7:32:13 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:32:13 PM [vite] changed tsconfig file detected: /home/mohx-nova/cookie-gallery/tsconfig.app.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+7:32:13 PM [vite] (client) hmr update /src/index.css
+7:32:13 PM [vite] (client) hmr update /src/index.css, /src/components/ui/button.tsx
+7:32:13 PM [vite] vite.config.ts changed, restarting server...
+7:32:13 PM [vite] (client) hmr update /src/index.css, /src/components/ui/button.tsx
+7:32:14 PM [vite] server restarted.
+7:39:51 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:41:12 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:42:14 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:43:02 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:43:07 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:43:15 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:43:17 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:43:18 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:43:22 PM [vite] (client) hmr update /src/components/ui/button.tsx, /src/index.css
+7:49:13 PM [vite] (client) hmr update /src/index.css
+7:50:22 PM [vite] (client) page reload index.html
+7:50:44 PM [vite] (client) hmr update /src/components/CookieCard.tsx, /src/index.css
+7:50:58 PM [vite] (client) hmr update /src/index.css, /src/components/Hero.tsx
+7:51:37 PM [vite] (client) hmr update /src/pages/CookieCatalogue.tsx, /src/index.css
+7:51:55 PM [vite] vite.config.ts changed, restarting server...
+7:51:55 PM [vite] server restarted.
+7:52:07 PM [vite] (client) hmr update /src/index.css, /src/components/CookieDetailModal.tsx
+7:52:31 PM [vite] (client) hmr update /src/index.css, /src/components/CookieCard.tsx
+7:55:17 PM [vite] (client) hmr update /src/index.css
+7:55:30 PM [vite] vite.config.ts changed, restarting server...
+7:55:30 PM [vite] (client) Re-optimizing dependencies because lockfile has changed
+7:55:30 PM [vite] server restarted.
+7:56:30 PM [vite] (client) hmr update /src/index.css, /src/components/Hero.tsx
+7:58:09 PM [vite] (client) hmr update /src/index.css, /src/pages/CookieCatalogue.tsx, /src/pages/CheckOut.tsx
