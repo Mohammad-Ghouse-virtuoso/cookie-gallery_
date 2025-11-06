@@ -1,153 +1,303 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { cookies as allCookies, type CookieData } from '../data/cookies';
 import CookieCard from '../components/CookieCard';
 import { useCart } from '../context/CartContext';
 import CookieDetailsModal from '../components/CookieDetailModal';
 import { Button } from '@/components/ui/button';
-import SkeletonCard from '@/components/SkeletonCard';
+import { CookieCardSkeleton } from '@/components/ui/skeleton';
+import { Search, X } from 'lucide-react';
 
 export default function CookieCatalogue() {
   const { cart, setCart } = useCart();
-  const [q, setQ] = useState('');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeDietaryFilters, setActiveDietaryFilters] = useState<string[]>([]);
+  const [activeProductTypes, setActiveProductTypes] = useState<string[]>([]);
   const [selectedCookie, setSelectedCookie] = useState<CookieData | null>(null);
-  const [ready, setReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFilterTransitioning, setIsFilterTransitioning] = useState(false);
 
-  // Ensure we start at the top when navigating to this page
+  // Smooth scroll to top on mount
   useEffect(() => {
-    window.scrollTo(0, 0);
-    // Simulate minimal delay to allow layout to stabilize before images load
-    const t = setTimeout(() => setReady(true), 50);
-    return () => clearTimeout(t);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
   }, []);
 
-  const fixedFilters: Array<{ label: string; value: string; kind: 'tag' | 'diet' }>= [
-    { label: 'Gluten-Free', value: 'gluten-free', kind: 'tag' },
-    { label: 'Sugar-Free', value: 'sugar-free', kind: 'tag' },
-    { label: 'Best-seller', value: 'best-seller', kind: 'tag' },
-    { label: 'High-Protein', value: 'high-protein', kind: 'tag' },
-    { label: 'Contains Nuts', value: 'contains-nuts', kind: 'tag' },
-    { label: 'Vegetarian (Eggless)', value: 'vegetarian-eggless', kind: 'diet' },
+  // Scroll to highlighted cookie if navigation passed state or query
+  const location = useLocation();
+  useEffect(() => {
+    // read from state first
+     
+    const state = (location.state as any) || {};
+    let highlightId = state.highlight as string | undefined;
+    if (!highlightId) {
+      const params = new URLSearchParams(location.search);
+      highlightId = params.get('highlight') || undefined;
+    }
+    if (highlightId) {
+      // delay slightly to allow grid to render
+      const t = setTimeout(() => {
+        const el = document.getElementById(highlightId!);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('blink-highlight');
+          setTimeout(() => el.classList.remove('blink-highlight'), 2000 + 200);
+        }
+      }, 300);
+      return () => clearTimeout(t);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
+
+  // Prevent scroll jump when filters change
+  useEffect(() => {
+    if (activeDietaryFilters.length > 0 || activeProductTypes.length > 0 || searchQuery) {
+      setIsFilterTransitioning(true);
+      const timer = setTimeout(() => setIsFilterTransitioning(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [activeDietaryFilters, activeProductTypes, searchQuery]);
+
+  const dietaryFilters = [
+    { label: 'Gluten-Free', value: 'gluten-free' },
+    { label: 'Sugar-Free', value: 'sugar-free' },
+    { label: 'High-Protein', value: 'high-protein' },
+    { label: 'Contains Nuts', value: 'contains-nuts' },
+    { label: 'Vegetarian (Eggless)', value: 'vegetarian-eggless' },
   ];
 
-  const filtered = useMemo(() => {
-    return allCookies.filter(c => {
-      const ql = q.trim().toLowerCase();
-      const matchesText = !ql || c.name.toLowerCase().includes(ql) || c.description.toLowerCase().includes(ql);
-      if (!activeTag) return matchesText;
-      const filter = fixedFilters.find(f => f.value === activeTag);
-      if (!filter) return matchesText;
-      if (filter.kind === 'tag') {
-        return matchesText && !!c.tags?.includes(filter.value);
-      }
-      // diet filters
-      if (filter.value === 'vegetarian-eggless') {
-        return matchesText && (c.dietPreference?.toLowerCase().includes('vegetarian') ?? false);
-      }
-      return matchesText;
-    });
-  }, [q, activeTag]);
+  const productTypeFilters = [
+    { label: 'Best-Seller', value: 'best-seller' },
+    { label: 'Premium', value: 'premium' },
+    { label: 'Classic', value: 'classic' },
+    { label: 'Seasonal', value: 'seasonal' },
+  ];
 
-  const setFilter = (t: string | null) => setActiveTag(t);
+  const toggleDietaryFilter = (value: string) => {
+    setIsFilterTransitioning(true);
+    setActiveDietaryFilters(prev =>
+      prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+    );
+  };
+
+  const toggleProductType = (value: string) => {
+    setIsFilterTransitioning(true);
+    setActiveProductTypes(prev =>
+      prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setActiveDietaryFilters([]);
+    setActiveProductTypes([]);
+    setSearchQuery('');
+  };
+
+  const filtered = useMemo(() => {
+    return allCookies.filter(cookie => {
+      const searchLower = searchQuery.trim().toLowerCase();
+      const matchesSearch = !searchLower || 
+        cookie.name.toLowerCase().includes(searchLower) || 
+        cookie.description.toLowerCase().includes(searchLower);
+
+      if (!matchesSearch) return false;
+
+      const matchesDietary = activeDietaryFilters.length === 0 || activeDietaryFilters.some(filter => {
+        if (cookie.tags?.includes(filter)) return true;
+        if (filter === 'vegetarian-eggless' && cookie.dietPreference?.toLowerCase().includes('vegetarian')) return true;
+        const dietPrefLower = cookie.dietPreference?.toLowerCase() || '';
+        if (filter === 'gluten-free' && dietPrefLower.includes('gluten')) return true;
+        if (filter === 'sugar-free' && dietPrefLower.includes('sugar')) return true;
+        return false;
+      });
+
+      if (!matchesDietary) return false;
+
+      const matchesProductType = activeProductTypes.length === 0 || activeProductTypes.some(type => cookie.tags?.includes(type));
+      return matchesProductType;
+    });
+  }, [searchQuery, activeDietaryFilters, activeProductTypes]);
 
   const handleQuantityChange = (cookieId: string, newQuantity: number) => {
     setCart(currentCart => {
       const updatedCart = { ...currentCart } as Record<string, number>;
-      if (newQuantity > 0) updatedCart[cookieId] = newQuantity; else delete updatedCart[cookieId];
+      if (newQuantity > 0) updatedCart[cookieId] = newQuantity; 
+      else delete updatedCart[cookieId];
       return updatedCart;
     });
   };
 
+  const activeFiltersCount = activeDietaryFilters.length + activeProductTypes.length;
+
   return (
-  <main className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-10">
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-10" style={{ scrollBehavior: 'smooth' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-extrabold text-gray-800">Cookie Catalogue</h1>
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 sticky top-0 z-10 bg-gradient-to-br from-gray-50 to-blue-50 py-4 -mt-4">
+          <h1 className="text-4xl font-extrabold text-gray-800">Cookie Catalogue</h1>
           <div className="flex items-center gap-3">
             <div className="relative">
+              <label htmlFor="cookie-search" className="sr-only">Search cookies</label>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" aria-hidden="true" />
               <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
+                id="cookie-search"
+                type="search"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search cookies..."
-                className="w-80 sm:w-96 max-w-full pl-10 pr-12 py-2.5 rounded-xl focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-transparent border border-indigo-200/40 shadow-sm placeholder:text-gray-500"
+                className="w-80 sm:w-96 max-w-full pl-10 pr-10 py-2.5 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)] placeholder:text-[#6b6b6b] text-gray-700 transition-all duration-200"
+                style={{
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  outline: 'none'
+                }}
+                aria-label="Search cookies by name or description"
               />
-              <svg className="absolute left-3 top-2.5 h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M18 10.5a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" />
-              </svg>
-              {q && (
+              {searchQuery && (
                 <button
                   aria-label="Clear search"
                   type="button"
-                  onClick={() => setQ('')}
-                  className="absolute right-2 top-2 z-10 h-6 w-6 rounded-full text-gray-500 hover:text-gray-700 bg-transparent flex items-center justify-center"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-[#5b3a20] transition-colors duration-160"
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'none'
+                  }}
                 >
-                  <span className="sr-only">Clear</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 8.586l4.95-4.95 1.414 1.414L11.414 10l4.95 4.95-1.414 1.414L10 11.414l-4.95 4.95-1.414-1.414L8.586 10l-4.95-4.95L5.05 3.636 10 8.586z" clipRule="evenodd"/></svg>
+                  <X className="h-4 w-4" aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
+        </header>
+
+        <div className="mb-8 space-y-6">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Dietary Preferences</h2>
+              {activeFiltersCount > 0 && (
+                <button 
+                  onClick={clearAllFilters} 
+                  className="text-xs text-[#5b3a20] hover:text-[#3a2310] font-medium hover:bg-[#f8eddc] transition-all duration-180"
+                  style={{
+                    borderRadius: 'var(--radius-pill)',
+                    padding: '6px 12px',
+                    border: 'none',
+                    outline: 'none'
+                  }}
+                >
+                  Clear all ({activeFiltersCount})
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Dietary preference filters">
+              {dietaryFilters.map(filter => {
+                const isActive = activeDietaryFilters.includes(filter.value);
+                return (
+                  <Button
+                    key={filter.value}
+                    onClick={() => toggleDietaryFilter(filter.value)}
+                    variant="ghost"
+                    size="sm"
+                    className={'rounded-full px-5 py-2 h-auto text-[15px] font-medium transition-all duration-180 ' + (isActive ? 'bg-[#F1B55C] text-white border border-[#F1B55C] hover:bg-[#dba661] hover:shadow-[0_2px_8px_rgba(241,181,92,0.25)] hover:-translate-y-0.5' : 'bg-white/85 text-[#2f2f36] border border-[#E8DCC9]/40 hover:bg-white hover:border-[#E8DCC9]/70 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] hover:-translate-y-0.5')}
+                    style={{ paddingTop: '9px', paddingBottom: '9px' }}
+                    aria-pressed={isActive}
+                    aria-label={(isActive ? 'Remove' : 'Apply') + ' ' + filter.label + ' filter'}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {isActive && <span className="text-xs" aria-hidden="true">✓</span>}
+                      <span>{filter.label}</span>
+                    </span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Product Types</h2>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Product type filters">
+              {productTypeFilters.map(filter => {
+                const isActive = activeProductTypes.includes(filter.value);
+                return (
+                  <Button
+                    key={filter.value}
+                    onClick={() => toggleProductType(filter.value)}
+                    variant="ghost"
+                    size="sm"
+                    className={'rounded-full px-5 py-2 h-auto text-[15px] font-medium transition-all duration-180 ' + (isActive ? 'bg-[#F1B55C] text-white border border-[#F1B55C] hover:bg-[#dba661] hover:shadow-[0_2px_8px_rgba(241,181,92,0.25)] hover:-translate-y-0.5' : 'bg-white/85 text-[#2f2f36] border border-[#E8DCC9]/40 hover:bg-white hover:border-[#E8DCC9]/70 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] hover:-translate-y-0.5')}
+                    style={{ paddingTop: '9px', paddingBottom: '9px' }}
+                    aria-pressed={isActive}
+                    aria-label={(isActive ? 'Remove' : 'Apply') + ' ' + filter.label + ' filter'}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {isActive && <span className="text-xs" aria-hidden="true">✓</span>}
+                      <span>{filter.label}</span>
+                    </span>
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-8">
-          {fixedFilters.map(f => {
-            const isActive = activeTag === f.value;
-            return (
-              <Button
-                key={f.value}
-                onClick={() => setFilter(isActive ? null : f.value)}
-                variant={isActive ? 'outline' : 'ghost'}
-                size="sm"
-                className={`${
-                  isActive
-                    ? 'bg-indigo-100 border-indigo-200 text-indigo-800'
-                    : 'bg-white border border-gray-200 text-gray-800 hover:bg-gray-50'
-                } rounded-full text-[11px] px-2.5 py-1 h-8`}
-              >
-                <span className="inline-flex items-center gap-1">
-                  {isActive && <span aria-hidden>❌</span>}
-                  <span>{f.label}</span>
-                </span>
-              </Button>
-            );
-          })}
-          {activeTag && (
-            <Button onClick={() => setFilter(null)} variant="ghost" size="sm" className="rounded-full bg-white/70 border border-gray-200 text-gray-700 hover:bg-white text-[11px] px-2.5 py-1">
-              Clear Filters
-            </Button>
-          )}
-        </div>
+        {(searchQuery || activeFiltersCount > 0) && (
+          <div className="mb-6 flex items-center gap-2 text-sm text-gray-600">
+            <span>Showing {filtered.length} of {allCookies.length} cookies</span>
+            {activeFiltersCount > 0 && <span className="text-gray-400">• {activeFiltersCount} filter{activeFiltersCount !== 1 ? 's' : ''} active</span>}
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 sm:gap-8">
-          {!ready && (
-            <>
-              {Array.from({ length: 8 }).map((_, i) => (
-                <SkeletonCard key={i} />
+        <section aria-label="Cookie products grid">
+          {isLoading ? (
+            <div 
+              className="grid gap-6 sm:gap-8"
+              style={{
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gridAutoRows: '1fr'
+              }}
+            >
+              {Array.from({ length: 12 }).map((_, i) => <CookieCardSkeleton key={i} />)}
+            </div>
+          ) : (
+            <div 
+              className={`grid transition-opacity duration-200 ${isFilterTransitioning ? 'opacity-50' : 'opacity-100'}`}
+              style={{
+                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+                gridAutoRows: '1fr',
+                gap: 'var(--space-lg)',
+                minHeight: '400px'
+              }}
+            >
+              {filtered.length === 0 && (
+                <div className="col-span-full text-center text-gray-500 py-12" role="status">
+                  <div className="max-w-md mx-auto">
+                    <p className="text-lg font-medium mb-2">No cookies found</p>
+                    <p className="text-sm text-gray-400 mb-4">{searchQuery ? 'No results for "' + searchQuery + '"' : 'Try adjusting your filters'}</p>
+                    {(searchQuery || activeFiltersCount > 0) && (
+                      <Button onClick={clearAllFilters} variant="outline" size="sm" className="rounded-full">
+                        Clear all filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {filtered.map(cookie => (
+                <CookieCard
+                  key={cookie.id}
+                  cookie={cookie as CookieData}
+                  quantity={(cart as any)[cookie.id] || 0}
+                  onChange={(newQty) => handleQuantityChange(cookie.id, newQty)}
+                  onShowDetails={() => setSelectedCookie(cookie)}
+                />
               ))}
-            </>
-          )}
-
-          {ready && filtered.length === 0 && (
-            <div className="col-span-full text-center text-gray-500">
-              No results found.
             </div>
           )}
-          {ready && filtered.map(cookie => (
-            <CookieCard
-              key={cookie.id}
-              cookie={cookie as CookieData}
-              quantity={(cart as any)[cookie.id] || 0}
-              onChange={(newQty) => handleQuantityChange(cookie.id, newQty)}
-              onShowDetails={() => setSelectedCookie(cookie as CookieData)}
-            />
-          ))}
-        </div>
-
-        <CookieDetailsModal
-          cookie={selectedCookie}
-          onClose={() => setSelectedCookie(null)}
-        />
+        </section>
       </div>
+
+      {selectedCookie && <CookieDetailsModal cookie={selectedCookie} onClose={() => setSelectedCookie(null)} />}
     </main>
   );
 }

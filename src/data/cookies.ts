@@ -1,45 +1,23 @@
-// Use Vite ImageTools to generate modern formats and responsive sizes
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import chocoChunk from '../assets/Choco-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import oatmealRaisin from '../assets/Oatmeal-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import whiteChoco from '../assets/white_choco-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import gingerCookie from '../assets/ginger-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import peanutCookie from '../assets/Peanut_butter-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import doubleChoco from '../assets/double-choco-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import cranberryCookie from '../assets/cranberry-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import coconutCookie from '../assets/coconut-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import almondCookie from '../assets/almond-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import blueberryCookie from '../assets/blueberry-cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=65';
-// @ts-ignore
-import darkChocoSeaSalt from '../assets/Dark_choco_sea_salt.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import redVelvet from '../assets/Red_velvet.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import matchaWhiteChoc from '../assets/White_matcha_choc.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import lemonZest from '../assets/Lemon_zest_cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=55';
-// @ts-ignore
-import espressoChoc from '../assets/Expresso_Choco_cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=55';
-// @ts-ignore
-import saltedCaramel from '../assets/Salted_caramel.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=55';
-// @ts-ignore
-import raisinWalnut from '../assets/Raisin_cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import pistachioRose from '../assets/Pistachio_rose_cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import hazelnutPraline from '../assets/Hazelnut_choco_cookie.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
-// @ts-ignore
-import ketoAlmondButter from '../assets/Keto_Almond_Butter.jpg?as=picture&format=avif;webp;jpg&width=400;600&quality=60';
+import chocoChunk from '../assets/Choco-cookie.jpg';
+import oatmealRaisin from '../assets/Oatmeal-cookie.jpg';
+import whiteChoco from '../assets/white_choco-cookie.jpg';
+import gingerCookie from '../assets/ginger-cookie.jpg';
+import peanutCookie from '../assets/Peanut_butter-cookie.jpg';
+import doubleChoco from '../assets/double-choco-cookie.jpg';
+import cranberryCookie from '../assets/cranberry-cookie.jpg';
+import coconutCookie from '../assets/coconut-cookie.jpg';
+import almondCookie from '../assets/almond-cookie.jpg';
+import blueberryCookie from '../assets/blueberry-cookie.jpg';
+import darkChocoSeaSalt from '../assets/Dark_choco_sea_salt.jpg';
+import redVelvet from '../assets/Red_velvet.jpg';
+import matchaWhiteChoc from '../assets/White_matcha_choc.jpg';
+import lemonZest from '../assets/Lemon_zest_cookie.jpg';
+import espressoChoc from '../assets/Expresso_Choco_cookie.jpg';
+import saltedCaramel from '../assets/Salted_caramel.jpg';
+import raisinWalnut from '../assets/Raisin_cookie.jpg';
+import pistachioRose from '../assets/Pistachio_rose_cookie.jpg';
+import hazelnutPraline from '../assets/Hazelnut_choco_cookie.jpg';
+import ketoAlmondButter from '../assets/Keto_Almond_Butter.jpg';
 
 
 export type Nutrition = {
@@ -56,10 +34,9 @@ export type CookieData  = {
   name: string;
   price: number;
   description: string;
-  // Can be a string URL or an imagetools picture object
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  src: any;
+  src: string;
   tags: string[];      // e.g., ['bestseller', 'eggless']
+  tagline?: string;    // short 2-6 word tagline for carousel
   nutrition: Nutrition;
   dietPreference?: string | null; // NEW: e.g., 'Gluten-Free', 'Sugar-Free', 'Vegetarian (Eggless)'
   allergens?: string[]; // NEW: e.g., ['milk', 'wheat', 'peanuts']
@@ -74,8 +51,9 @@ export type CookieData  = {
       price: 70, // Basic chocolate, medium price
       description: "A delightful classic with rich chocolate chips, perfect for any time.",
       src: chocoChunk,
-      tags: ['classic', 'best-seller', 'chocolate'],
-      nutrition: { protein: 6, energy: 510, totalFat: 26, fibre: 2.5, totalCarbs: 64, totalSugar: 36 },
+  tags: ['classic', 'best-seller', 'chocolate'],
+  tagline: 'Melted dark perfection.',
+  nutrition: { protein: 6, energy: 510, totalFat: 26, fibre: 2.5, totalCarbs: 64, totalSugar: 36 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat', 'soy'],
     },
@@ -85,8 +63,9 @@ export type CookieData  = {
       price: 65, // Simple, wholesome, lower price
       description: "Hearty oatmeal cookie, a comforting and traditional treat.",
       src: oatmealRaisin,
-      tags: ['classic', 'high-protein'],
-      nutrition: { protein: 7, energy: 470, totalFat: 20, fibre: 4.5, totalCarbs: 66, totalSugar: 28 },
+  tags: ['classic', 'high-protein'],
+  tagline: 'Golden, rustic, slow love.',
+  nutrition: { protein: 7, energy: 470, totalFat: 20, fibre: 4.5, totalCarbs: 66, totalSugar: 28 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat'],
     },
@@ -118,8 +97,9 @@ export type CookieData  = {
       price: 95, // Nut-based, slightly higher
       description: "Rich and nutty, a classic peanut butter cookie with a soft texture.",
       src: peanutCookie,
-      tags: ['contains-nuts', 'high-protein', 'best-seller'],
-      nutrition: { protein: 14, energy: 540, totalFat: 28, fibre: 3.5, totalCarbs: 52, totalSugar: 24 },
+  tags: ['contains-nuts', 'high-protein', 'best-seller'],
+  tagline: 'Crunch with confidence.',
+  nutrition: { protein: 14, energy: 540, totalFat: 28, fibre: 3.5, totalCarbs: 52, totalSugar: 24 },
       dietPreference: 'Contains Nuts',
       allergens: ['peanuts', 'milk', 'wheat'],
     },
@@ -140,8 +120,9 @@ export type CookieData  = {
       price: 80, // Fruit-based, medium price
       description: "Sweet and tart cranberries baked into a delicious, chewy cookie.",
       src: cranberryCookie,
-      tags: ['fruity', 'gluten-free'],
-      nutrition: { protein: 4, energy: 480, totalFat: 20, fibre: 2.6, totalCarbs: 70, totalSugar: 32 },
+  tags: ['fruity', 'gluten-free'],
+  tagline: 'Tart meets tender.',
+  nutrition: { protein: 4, energy: 480, totalFat: 20, fibre: 2.6, totalCarbs: 70, totalSugar: 32 },
       dietPreference: 'Gluten-Free',
       allergens: ['milk'],
     },
@@ -186,6 +167,7 @@ export type CookieData  = {
       description: 'Rich dark chocolate with a hint of flaky sea salt.',
   src: darkChocoSeaSalt,
       tags: ['premium', 'chocolate', 'best-seller'],
+      tagline: 'Bold. Bitter. Beautiful.',
       nutrition: { protein: 6, energy: 520, totalFat: 28, fibre: 3.0, totalCarbs: 60, totalSugar: 30 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat', 'soy'],
@@ -197,6 +179,7 @@ export type CookieData  = {
       description: 'Soft red velvet cookie with white chocolate chips.',
   src: redVelvet,
       tags: ['premium', 'best-seller'],
+      tagline: 'Drama never tasted this good.',
       nutrition: { protein: 6, energy: 510, totalFat: 26, fibre: 2.0, totalCarbs: 62, totalSugar: 34 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat', 'soy'],
@@ -208,6 +191,7 @@ export type CookieData  = {
       description: 'Earthy matcha balanced with creamy white chocolate.',
   src: matchaWhiteChoc,
       tags: ['premium'],
+      tagline: 'Serenity baked in sweetness.',
       nutrition: { protein: 7, energy: 500, totalFat: 24, fibre: 2.8, totalCarbs: 64, totalSugar: 32 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat', 'soy'],
@@ -241,6 +225,7 @@ export type CookieData  = {
       description: 'Buttery caramel swirls topped with flaky sea salt.',
   src: saltedCaramel,
       tags: ['premium', 'best-seller'],
+      tagline: 'Gold in every bite.',
       nutrition: { protein: 5, energy: 530, totalFat: 27, fibre: 1.6, totalCarbs: 65, totalSugar: 38 },
       dietPreference: 'Vegetarian (Eggless)',
       allergens: ['milk', 'wheat', 'soy'],

@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 
 export type ReviewItem = { id: number; name: string; rating: number; text: string; avatar: string };
-import avatar1 from '../assets/Shayan_image.png';
+import avatar1 from '../assets/Shayan_image.jpg';
 import avatar2 from '../assets/rahul_pfp.jpg';
 import avatar3 from '../assets/x_pfp.jpg';
 import avatar4 from '../assets/Bharathi_pfp.jpg';
@@ -27,19 +27,24 @@ export default function ReviewsSection({ items }: { items?: ReviewItem[] }) {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h2 className="text-4xl font-extrabold text-center text-gray-800 mb-12">What Our Customers Say</h2>
         <div className="overflow-hidden">
-          <motion.div className="flex gap-6" animate={{ x: ['0%', '-50%'] }} transition={{ repeat: Infinity, repeatType: 'mirror', duration: 18, ease: 'easeInOut' }}>
+          <motion.div className="flex gap-5" animate={{ x: ['0%', '-50%'] }} transition={{ repeat: Infinity, repeatType: 'mirror', duration: 18, ease: 'easeInOut' }}>
             {[...reviews, ...reviews].map((r, idx) => (
-              <motion.div key={`${r.id}-${idx}`} whileHover={{ scale: 1.03 }} className="min-w-[280px] max-w-[280px] bg-white/90 backdrop-blur rounded-2xl shadow-lg p-5 border border-amber-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <img src={r.avatar} alt={r.name} className="w-10 h-10 rounded-full object-cover" />
-                  <div>
-                    <div className="font-semibold text-gray-800">{r.name}</div>
-                    <div className="flex items-center gap-1">
+              <motion.div 
+                key={`${r.id}-${idx}`} 
+                whileHover={{ scale: 1.02, y: -2 }} 
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="min-w-[280px] max-w-[280px] bg-white/90 backdrop-blur rounded-2xl shadow-sm hover:shadow-[0_4px_16px_rgba(0,0,0,0.1)] transition-shadow duration-200 p-6 border border-amber-100"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <img src={r.avatar} alt={r.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-100" />
+                  <div className="flex-1">
+                    <div className="font-semibold text-gray-800 mb-1">{r.name}</div>
+                    <div className="flex items-center gap-1.5">
                       {Array.from({ length: 5 }).map((_, i) => <Star key={i} filled={i < r.rating} />)}
                     </div>
                   </div>
                 </div>
-                <p className="text-gray-600 leading-relaxed">{r.text}</p>
+                <p className="text-gray-600 leading-relaxed text-sm">{r.text}</p>
               </motion.div>
             ))}
           </motion.div>

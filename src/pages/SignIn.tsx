@@ -24,7 +24,7 @@ declare global {
 }
 
 export default function SignIn() {
-  const { user, loading } = useAuth();
+  const { user, loading, authDisabled } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
@@ -34,7 +34,9 @@ export default function SignIn() {
   const recaptchaContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const [authInstance] = useState(() => getAuth());
+  const [authInstance] = useState(() => {
+    try { return getAuth(); } catch { return null as any; }
+  });
 
   // If already signed in, redirect away from /signin to home
   useEffect(() => {
@@ -46,6 +48,7 @@ export default function SignIn() {
 
   // Handle redirect result (Google sign-in) on page load
   useEffect(() => {
+    if (authDisabled || !authInstance) return;
     (async () => {
       try {
         const result = await getRedirectResult(authInstance);
@@ -57,10 +60,11 @@ export default function SignIn() {
           console.log('SignIn: getRedirectResult returned no user');
         }
       } catch (e: any) {
-        setMessage(`Google Sign-In failed: ${e.message}`);
+        console.warn('SignIn: getRedirectResult error', e);
+        setMessage(`Google Sign-In failed: ${e?.message || String(e)}`);
       }
     })();
-  }, [authInstance, navigate]);
+  }, [authDisabled, authInstance, navigate]);
 
   // Removed auto-trigger for Google sign-in to allow manual user interaction
   // Users must click the button to initiate sign-in
@@ -75,7 +79,8 @@ export default function SignIn() {
     setAuthLoading(true);
     setMessage('');
     try {
-      const auth = authInstance || getAuth();
+      if (authDisabled || !authInstance) throw new Error('Auth is disabled in this environment.');
+      const auth = authInstance;
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       try {
@@ -106,7 +111,7 @@ export default function SignIn() {
     setAuthLoading(true);
     setMessage('');
     try {
-      if (!authInstance) throw new Error("Firebase Auth not initialized.");
+      if (authDisabled || !authInstance) throw new Error("Firebase Auth not initialized.");
       if (!phoneNumber) {
         setMessage("Please enter a phone number.");
         setAuthLoading(false);
@@ -119,7 +124,7 @@ export default function SignIn() {
       }
       // Clean up old reCAPTCHA if exists (prevents duplicate re-render error)
       if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch {}
+        try { window.recaptchaVerifier.clear(); } catch (err) { console.warn('recaptcha clear failed', err); }
         window.recaptchaVerifier = null;
       }
       // Now create a new one
@@ -150,13 +155,14 @@ export default function SignIn() {
       ) {
         setMessage("Phone authentication is temporarily unavailable. Please reload the page and try again.");
       } else {
-        setMessage(`Failed to send OTP: ${error.message}`);
+        console.error('SignIn: Failed to send OTP', error);
+        setMessage(`Failed to send OTP: ${error?.message || String(error)}`);
       }
     } finally {
       setAuthLoading(false);
       // Clean up on error/finally for reliability
       if (window.recaptchaVerifier && window.recaptchaVerifier.clear) {
-        try { window.recaptchaVerifier.clear(); } catch {}
+        try { window.recaptchaVerifier.clear(); } catch (err) { console.warn('recaptcha clear failed', err); }
         window.recaptchaVerifier = null;
       }
     }
@@ -180,17 +186,18 @@ export default function SignIn() {
       setMessage('Phone number verified successfully!');
       setOtp('');
       if (window.recaptchaVerifier && window.recaptchaVerifier.clear) {
-        try { window.recaptchaVerifier.clear(); } catch {}
+        try { window.recaptchaVerifier.clear(); } catch (err) { console.warn('recaptcha clear failed', err); }
         window.recaptchaVerifier = null;
       }
       navigate('/', { replace: true });
     } catch (error: any) {
+      console.error('SignIn: OTP verification error', error);
       if (error.code === 'auth/invalid-verification-code') {
         setMessage('Invalid OTP. Please try again.');
       } else if (error.code === 'auth/code-expired') {
         setMessage('OTP expired. Please resend.');
       } else {
-        setMessage(`OTP verification failed: ${error.message}`);
+        setMessage(`OTP verification failed: ${error?.message || String(error)}`);
       }
     } finally {
       setAuthLoading(false);
@@ -201,7 +208,7 @@ export default function SignIn() {
     setAuthLoading(true);
     setMessage('');
     try {
-      if (!authInstance) throw new Error("Firebase Auth not initialized.");
+      if (authDisabled || !authInstance) throw new Error("Firebase Auth not initialized.");
       await authInstance.signOut();
       setMessage('Signed out successfully.');
       navigate('/signed-out');
@@ -227,6 +234,19 @@ export default function SignIn() {
         {/* Page Header */}
         <h1 className="text-4xl font-extrabold text-gray-800 mb-4">Welcome to Cookie Gallery!</h1>
         <p className="text-lg text-gray-600 mb-6">Sign in to unlock exclusive sweet deals.</p>
+
+        {authDisabled && (
+          <div className="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-left">
+            <p className="font-semibold mb-1">Authentication is disabled in this environment.</p>
+            <p className="text-sm">Firebase configuration was not detected. For local development, you can continue browsing the catalogue and UI without signing in.</p>
+            <button
+              onClick={() => navigate('/home')}
+              className="mt-3 inline-flex items-center rounded-full bg-[color:#f1b55c] px-4 py-2 text-[color:#3a2310] font-semibold hover:bg-[color:#dba661]"
+            >
+              Go to Home
+            </button>
+          </div>
+        )}
 
         <h2 className="text-3xl font-extrabold text-gray-800 mb-6">
           {user ? "You're Logged In!" : "Sign In / Sign Up"}

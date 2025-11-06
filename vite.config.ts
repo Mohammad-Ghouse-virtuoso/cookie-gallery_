@@ -16,12 +16,17 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
-          motion: ['framer-motion'],
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+          'vendor-stripe': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
+          'vendor-ui': ['framer-motion', 'swiper'],
         },
       },
     },
+    chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
   },
 })
