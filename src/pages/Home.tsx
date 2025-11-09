@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import type { CookieData } from '../data/cookies';
 import { useCart } from '../context/CartContext';
 import { FaInstagram, FaFacebook } from 'react-icons/fa'; // Ensure react-icons is installed
 import { FaXTwitter } from 'react-icons/fa6';
@@ -9,7 +8,6 @@ import { useAuth } from '../context/AuthContext'; // Use AuthContext
 
 // Importing the separate components
 import Hero from '../components/Hero';
-import CookieDetailsModal from '../components/CookieDetailModal';
 import ReviewsSection from '../components/ReviewsSection';
 import BestsellerCarousel from '../components/BestsellerCarousel';
 import FestiveBanner from '../components/FestiveBanner';
@@ -23,7 +21,6 @@ export default function Home() {
   const location = useLocation(); // <--- ADDED: Hook to access URL parameters
   const navigate = useNavigate(); // <--- ADDED: Hook for navigation
 
-  const [selectedCookie, setSelectedCookie] = useState<CookieData | null>(null);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
 
   // <--- ADDED: useEffect to show the dialog once on successful login
@@ -153,12 +150,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Cookie Details Modal */}
-      <CookieDetailsModal
-        cookie={selectedCookie}
-        onClose={() => setSelectedCookie(null)}
-      />
 
       {/* FOOTER SECTION - START */}
       <footer className="relative w-full bg-gradient-to-b from-slate-900 to-zinc-950 text-slate-300 pt-16 pb-10 px-4 sm:px-6 lg:px-8 font-inter antialiased">

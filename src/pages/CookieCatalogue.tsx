@@ -1,21 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { cookies as allCookies, type CookieData } from '../data/cookies';
 import CookieCard from '../components/CookieCard';
 import { useCart } from '../context/CartContext';
-import CookieDetailsModal from '../components/CookieDetailModal';
 import { Button } from '@/components/ui/button';
 import { CookieCardSkeleton } from '@/components/ui/skeleton';
-import { Search, X } from 'lucide-react';
 
 export default function CookieCatalogue() {
   const { cart, setCart } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDietaryFilters, setActiveDietaryFilters] = useState<string[]>([]);
   const [activeProductTypes, setActiveProductTypes] = useState<string[]>([]);
-  const [selectedCookie, setSelectedCookie] = useState<CookieData | null>(null);
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [isFilterTransitioning, setIsFilterTransitioning] = useState(false);
 
   // Smooth scroll to top on mount
   useEffect(() => {
@@ -50,14 +47,6 @@ export default function CookieCatalogue() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key]);
 
-  // Prevent scroll jump when filters change
-  useEffect(() => {
-    if (activeDietaryFilters.length > 0 || activeProductTypes.length > 0 || searchQuery) {
-      setIsFilterTransitioning(true);
-      const timer = setTimeout(() => setIsFilterTransitioning(false), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [activeDietaryFilters, activeProductTypes, searchQuery]);
 
   const dietaryFilters = [
     { label: 'Gluten-Free', value: 'gluten-free' },
@@ -74,15 +63,19 @@ export default function CookieCatalogue() {
     { label: 'Seasonal', value: 'seasonal' },
   ];
 
+  const filterButtonBaseClasses = 'rounded-full px-5 py-3 text-sm font-medium transition-all duration-150 ease-out transform border justify-center whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#E2B97F] hover:-translate-y-0.5 active:scale-105';
+  const filterButtonActiveClasses = '!bg-[#E2B97F] !text-white !border-transparent !shadow-[0_8px_20px_rgba(193,140,93,0.28)] hover:!bg-[#E3BA8A] hover:!shadow-[0_10px_24px_rgba(193,140,93,0.32)]';
+  const filterButtonInactiveClasses = '!bg-white !text-[#3A2E27] !border-[#E3E3E3] !shadow-[0_2px_6px_rgba(58,46,39,0.08)] hover:!bg-[#F8EEDB] hover:!shadow-[0_6px_16px_rgba(226,185,127,0.16)]';
+  const filterChipRowClasses = 'flex gap-[12px] overflow-x-auto pb-1 scroll-smooth justify-start md:flex-wrap md:justify-start md:overflow-visible';
+  const clearFiltersButtonClasses = 'transform inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold bg-[#F2D3A8] text-[#5B3A20] transition-all duration-200 ease-out hover:bg-[#E8C58F] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(226,185,127,0.24)] hover:underline hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2B97F] focus-visible:ring-offset-2 active:scale-[0.96] active:shadow-none';
+
   const toggleDietaryFilter = (value: string) => {
-    setIsFilterTransitioning(true);
     setActiveDietaryFilters(prev =>
       prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
     );
   };
 
   const toggleProductType = (value: string) => {
-    setIsFilterTransitioning(true);
     setActiveProductTypes(prev =>
       prev.includes(value) ? prev.filter(f => f !== value) : [...prev, value]
     );
@@ -136,62 +129,52 @@ export default function CookieCatalogue() {
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 sticky top-0 z-10 bg-gradient-to-br from-gray-50 to-blue-50 py-4 -mt-4">
           <h1 className="text-4xl font-extrabold text-gray-800">Cookie Catalogue</h1>
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative group">
               <label htmlFor="cookie-search" className="sr-only">Search cookies</label>
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" aria-hidden="true" />
+              <span
+                aria-hidden="true"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] leading-none"
+              >
+                🔍
+              </span>
               <input
                 id="cookie-search"
                 type="search"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search cookies..."
-                className="w-80 sm:w-96 max-w-full pl-10 pr-10 py-2.5 bg-white shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] focus:shadow-[inset_0_1px_4px_rgba(0,0,0,0.08)] placeholder:text-[#6b6b6b] text-gray-700 transition-all duration-200"
+                className="w-full sm:w-96 max-w-full pl-11 pr-4 py-3 bg-white text-[#3A2E27] border border-[#E0E0E0] placeholder:text-[#9B9B9B] transition-all duration-200 ease-out focus:border-[#F1B55C] focus:ring-2 focus:ring-[#F1B55C]/30 focus:outline-none shadow-sm transform group-hover:border-[#E2B97F] group-hover:shadow-[0_18px_38px_rgba(193,140,93,0.18)] group-hover:bg-[#FFFCF7] group-hover:-translate-y-0.5"
                 style={{
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  outline: 'none'
+                  borderRadius: 'var(--radius-md)'
                 }}
                 aria-label="Search cookies by name or description"
               />
-              {searchQuery && (
-                <button
-                  aria-label="Clear search"
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-[#5b3a20] transition-colors duration-160"
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    background: 'none'
-                  }}
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              )}
             </div>
           </div>
         </header>
 
-        <div className="mb-8 space-y-6">
+        <div className="mb-10 space-y-10">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
               <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Dietary Preferences</h2>
-              {activeFiltersCount > 0 && (
+              <div className="flex min-h-[40px] min-w-[112px] sm:min-w-[140px] items-center justify-end">
                 <button 
                   onClick={clearAllFilters} 
-                  className="text-xs text-[#5b3a20] hover:text-[#3a2310] font-medium hover:bg-[#f8eddc] transition-all duration-180"
-                  style={{
-                    borderRadius: 'var(--radius-pill)',
-                    padding: '6px 12px',
-                    border: 'none',
-                    outline: 'none'
-                  }}
+                  className={`${clearFiltersButtonClasses} ${activeFiltersCount > 0 ? '' : 'pointer-events-none invisible'}`}
+                  aria-hidden={activeFiltersCount > 0 ? undefined : true}
+                  tabIndex={activeFiltersCount > 0 ? 0 : -1}
+                  type="button"
                 >
-                  Clear all ({activeFiltersCount})
+                  Clear filters{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ''}
                 </button>
-              )}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Dietary preference filters">
+            <div
+              className={filterChipRowClasses}
+              role="group"
+              aria-label="Dietary preference filters"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {dietaryFilters.map(filter => {
                 const isActive = activeDietaryFilters.includes(filter.value);
                 return (
@@ -200,8 +183,7 @@ export default function CookieCatalogue() {
                     onClick={() => toggleDietaryFilter(filter.value)}
                     variant="ghost"
                     size="sm"
-                    className={'rounded-full px-5 py-2 h-auto text-[15px] font-medium transition-all duration-180 ' + (isActive ? 'bg-[#F1B55C] text-white border border-[#F1B55C] hover:bg-[#dba661] hover:shadow-[0_2px_8px_rgba(241,181,92,0.25)] hover:-translate-y-0.5' : 'bg-white/85 text-[#2f2f36] border border-[#E8DCC9]/40 hover:bg-white hover:border-[#E8DCC9]/70 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] hover:-translate-y-0.5')}
-                    style={{ paddingTop: '9px', paddingBottom: '9px' }}
+                    className={`${filterButtonBaseClasses} ${isActive ? filterButtonActiveClasses : filterButtonInactiveClasses}`}
                     aria-pressed={isActive}
                     aria-label={(isActive ? 'Remove' : 'Apply') + ' ' + filter.label + ' filter'}
                   >
@@ -216,8 +198,13 @@ export default function CookieCatalogue() {
           </div>
 
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Product Types</h2>
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Product type filters">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Product Types</h2>
+            <div
+              className={filterChipRowClasses}
+              role="group"
+              aria-label="Product type filters"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {productTypeFilters.map(filter => {
                 const isActive = activeProductTypes.includes(filter.value);
                 return (
@@ -226,8 +213,7 @@ export default function CookieCatalogue() {
                     onClick={() => toggleProductType(filter.value)}
                     variant="ghost"
                     size="sm"
-                    className={'rounded-full px-5 py-2 h-auto text-[15px] font-medium transition-all duration-180 ' + (isActive ? 'bg-[#F1B55C] text-white border border-[#F1B55C] hover:bg-[#dba661] hover:shadow-[0_2px_8px_rgba(241,181,92,0.25)] hover:-translate-y-0.5' : 'bg-white/85 text-[#2f2f36] border border-[#E8DCC9]/40 hover:bg-white hover:border-[#E8DCC9]/70 hover:shadow-[0_2px_6px_rgba(0,0,0,0.08)] hover:-translate-y-0.5')}
-                    style={{ paddingTop: '9px', paddingBottom: '9px' }}
+                    className={`${filterButtonBaseClasses} ${isActive ? filterButtonActiveClasses : filterButtonInactiveClasses}`}
                     aria-pressed={isActive}
                     aria-label={(isActive ? 'Remove' : 'Apply') + ' ' + filter.label + ' filter'}
                   >
@@ -262,7 +248,7 @@ export default function CookieCatalogue() {
             </div>
           ) : (
             <div 
-              className={`grid transition-opacity duration-200 ${isFilterTransitioning ? 'opacity-50' : 'opacity-100'}`}
+              className="grid transition-opacity duration-200"
               style={{
                 gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
                 gridAutoRows: '1fr',
@@ -289,15 +275,13 @@ export default function CookieCatalogue() {
                   cookie={cookie as CookieData}
                   quantity={(cart as any)[cookie.id] || 0}
                   onChange={(newQty) => handleQuantityChange(cookie.id, newQty)}
-                  onShowDetails={() => setSelectedCookie(cookie)}
+                  onShowDetails={() => navigate(`/product/${cookie.id}`)}
                 />
               ))}
             </div>
           )}
         </section>
       </div>
-
-      {selectedCookie && <CookieDetailsModal cookie={selectedCookie} onClose={() => setSelectedCookie(null)} />}
     </main>
   );
 }

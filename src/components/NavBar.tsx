@@ -1,18 +1,49 @@
 // src/components/NavBar.tsx
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaCookieBite } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import CartPreviewModal from './CartPreviewModal';
+import CartPreviewModal, { type CartPreviewItem, type CartTotals } from './CartPreviewModal';
 import AnimatedSignOutButton from './AnimatedSignOutButton';
 import AnimatedCartButton from './AnimatedCartButton';
+import { cookies as allCookies } from '@/data/cookies';
 
 export default function NavBar() {
   const { user, loading, signOutUser } = useAuth();
   const navigate = useNavigate();
   const { cart, setCart } = useCart();
   const [showCart, setShowCart] = useState(false);
+  const cookieLookup = useMemo(() => {
+    const map = new Map<string, (typeof allCookies)[number]>();
+    allCookies.forEach(cookie => map.set(cookie.id, cookie));
+    return map;
+  }, []);
+
+  const cartItems = useMemo<CartPreviewItem[]>(() => {
+    const meta = ((cart as any)._meta ?? {}) as Record<string, Partial<CartPreviewItem>>;
+
+    return Object.entries(cart as Record<string, number>)
+      .filter(([key, qty]) => key !== '_meta' && typeof qty === 'number' && qty > 0)
+      .map(([id, qty]) => {
+        const cookieInfo = cookieLookup.get(id);
+        const fallback = meta[id] ?? {};
+        return {
+          id,
+          name: cookieInfo?.name ?? (fallback.name ?? id),
+          image: cookieInfo?.src ?? (fallback.image ?? ''),
+          price: cookieInfo?.price ?? (fallback.price ?? 0),
+          qty,
+        } satisfies CartPreviewItem;
+      });
+  }, [cart, cookieLookup]);
+
+  const cartTotals = useMemo<CartTotals>(() => {
+    const subtotal = cartItems.reduce((total, item) => total + item.price * item.qty, 0);
+    return { subtotal, grandTotal: subtotal };
+  }, [cartItems]);
+
+  const cartBadgeCount = useMemo(() => cartItems.reduce((total, item) => total + item.qty, 0), [cartItems]);
 
   const handleSignOutClick = async () => {
     try {
@@ -56,7 +87,7 @@ export default function NavBar() {
             {/* Animated Cart Button */}
             <AnimatedCartButton 
               onClick={() => setShowCart(true)}
-              quantity={Object.keys(cart).filter(k => k !== '_meta').length}
+              quantity={cartBadgeCount}
             />
 
             {/* Signed-in identity avatar (hover to reveal email) */}
@@ -83,32 +114,35 @@ export default function NavBar() {
       <CartPreviewModal
         isOpen={showCart}
         onClose={() => setShowCart(false)}
-        items={Object.entries(cart as Record<string, number>).map(([id, qty]) => {
-          return {
-            id,
-            name: (cart as any)._meta?.[id]?.name || id,
-            image: (cart as any)._meta?.[id]?.image || '',
-            price: (cart as any)._meta?.[id]?.price || 0,
-            qty: qty as number,
-          };
-        })}
-        totals={(function(){
-          const entries = Object.entries(cart as Record<string, number>);
-          let subtotal = 0;
-          entries.forEach(([id, qty]) => {
-            const price = (cart as any)._meta?.[id]?.price || 0;
-            subtotal += price * (qty as number);
-          });
-          return { subtotal, grandTotal: subtotal };
-        })()}
+        items={cartItems}
+        totals={cartTotals}
         onUpdateQty={(id, qty) => setCart(prev => {
-          const next = { ...(prev as any) } as Record<string, number>;
-          if (qty > 0) next[id] = qty; else delete next[id];
+          const next = { ...(prev as any) } as Record<string, number> & { _meta?: Record<string, Partial<CartPreviewItem>> };
+          if (qty > 0) {
+            next[id] = qty;
+            const cookieInfo = cookieLookup.get(id);
+            const meta = (next._meta ??= {});
+            if (cookieInfo) {
+              meta[id] = {
+                name: cookieInfo.name,
+                image: cookieInfo.src,
+                price: cookieInfo.price,
+              };
+            }
+          } else {
+            delete next[id];
+            if (next._meta) {
+              delete next._meta[id];
+            }
+          }
           return next as any;
         })}
         onRemove={(id) => setCart(prev => {
-          const next = { ...(prev as any) } as Record<string, number>;
+          const next = { ...(prev as any) } as Record<string, number> & { _meta?: Record<string, Partial<CartPreviewItem>> };
           delete next[id];
+          if (next._meta) {
+            delete next._meta[id];
+          }
           return next as any;
         })}
         onCheckout={() => { setShowCart(false); navigate('/checkout'); }}

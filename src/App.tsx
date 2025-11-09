@@ -14,6 +14,7 @@ import ProtectedRoutes from "./components/ProtectedRoutes";
 import Story from "./pages/Story";
 import BehindTheScenes from "./pages/BehindTheScenes";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ProductDetailPage from "./pages/ProductDetailPage.tsx";
 
 // Import AuthProvider
 import { AuthProvider } from "./context/AuthContext";
@@ -42,6 +43,7 @@ function AppContent() {
           <Route index element={<Home />} />
           <Route path="home" element={<Home />} />
           <Route path="cookies" element={<CookieCatalogue />} />
+          <Route path="product/:cookieId" element={<ProductDetailPage />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="story" element={<Story />} />
           <Route path="behind-the-scenes" element={<BehindTheScenes />} />
