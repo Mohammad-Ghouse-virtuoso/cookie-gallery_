@@ -1,4 +1,4 @@
-
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 import mixing from '../assets/mixing.jpg';
@@ -20,6 +20,10 @@ const process: Step[] = [
 ];
 
 export default function BehindTheScenes() {
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
 
   return (
     <div className="font-inter antialiased">

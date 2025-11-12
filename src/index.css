@@ -1,10 +1,11 @@
 /* src/index.css */
 
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap');
 /* Keep Tailwind import here as the primary global stylesheet */
 @import "tailwindcss";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -47,6 +48,12 @@
   --color-accent-caramel: #dba661;
   --color-accent-beige: #E8DCC9;
   --color-accent-teal: #6db3a5;
+  --bg-cream: #FFF9F4;
+  --card-bg: #FFF6F0;
+  --cocoa: #3B2B1A;
+  --caramel: #E2B97F;
+  --muted-ink: #6B5E57;
+  --danger: #E35B48;
   
   /* Animation Tokens */
   --duration-small: 150ms;
@@ -91,6 +98,8 @@ body {
   overflow-x: hidden;
   /* Prevent scroll jank */
   overscroll-behavior: none;
+  background: var(--bg-cream);
+  color: var(--cocoa);
 }
 
 h1 {
@@ -105,16 +114,19 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--cocoa);
+  color: #FFF6F0;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
 }
 button:hover {
-  border-color: #646cff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -18px rgba(59, 43, 26, 0.45);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid rgba(226, 185, 127, 0.45);
+  outline-offset: 2px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -126,8 +138,14 @@ button:focus-visible {
     color: #747bff;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: var(--cocoa);
   }
+}
+
+input,
+textarea {
+  caret-color: var(--cocoa);
+  caret-shape: auto;
 }
 
 /* small helper animations used in headers */

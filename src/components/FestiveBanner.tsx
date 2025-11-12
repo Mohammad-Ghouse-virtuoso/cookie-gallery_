@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import heroPlatter from '../assets/Hero-cookie-platter.jpg?w=640;960;1440;1920&format=avif;webp;jpg&as=picture';
 import packaging from '../assets/packaging_new2.jpeg';
 import cookieBox from '../assets/Cookie-gallery-bake.jpeg';
+import warmBoxCenter from '../assets/Warm_box_cookies_3.png';
+import cookiesInBasket from '../assets/Cookies_in_basket.jpeg';
 
 type SeasonKey = 'golden' | 'spring' | 'winter' | 'diwali' | 'custom';
 
@@ -54,14 +56,15 @@ const THEMES: Record<SeasonKey, SeasonTheme> = {
 
 export default function FestiveBanner({ season = 'golden' as SeasonKey }: { season?: SeasonKey }) {
   const theme = THEMES[season] || THEMES.golden;
+  const isGoldenSeason = season === 'golden';
   // Normalize imagetools picture output defensively in case plugin returns a single source or different shape
   const sourcesNormalized = Array.isArray((heroPlatter as any)?.sources)
     ? (heroPlatter as any).sources
     : ((heroPlatter as any)?.sources ? [ (heroPlatter as any).sources ] : []);
   const imgPayload = (heroPlatter as any)?.img || {};
-  const imgSrc = imgPayload.src || cookieBox; // fallback to cookieBox if imagetools payload missing
-  const imgW = imgPayload.w || 768;
-  const imgH = imgPayload.h || 512;
+  const imgSrc = isGoldenSeason ? warmBoxCenter : (imgPayload.src || cookieBox);
+  const imgW = isGoldenSeason ? 960 : (imgPayload.w || 768);
+  const imgH = isGoldenSeason ? 640 : (imgPayload.h || 512);
   return (
     <section
       aria-label="The Golden Season limited festive drop"
@@ -89,7 +92,7 @@ export default function FestiveBanner({ season = 'golden' as SeasonKey }: { seas
 
               <div className="mt-6 animate-fade-in animation-delay-400">
                 <Link
-                  to="/cookies?filter=limited"
+                  to="/golden-season"
                   className="cta-glow inline-block w-full sm:w-auto rounded-full py-4 px-7 sm:px-8"
                   style={{ backgroundColor: theme.ctaBg, color: theme.ctaText }}
                 >
@@ -102,21 +105,25 @@ export default function FestiveBanner({ season = 'golden' as SeasonKey }: { seas
             <div className="order-first md:order-last flex items-end justify-center md:justify-end">
               <div className="relative w-64 h-44 sm:w-80 sm:h-56 lg:w-96 lg:h-64 animate-fade-in animation-delay-300">
                 <picture>
-                  {sourcesNormalized.map((s: any, idx: number) => (
+                  {!isGoldenSeason && sourcesNormalized.map((s: any, idx: number) => (
                     <source key={s?.type || idx} type={s?.type} srcSet={s?.srcset} sizes="(min-width: 1024px) 32rem, 75vw" />
                   ))}
                   <img
                     src={imgSrc}
                     width={imgW}
                     height={imgH}
-                    alt="Festive cookie platter on marble surface"
+                    alt={isGoldenSeason ? 'Warm box cookies stacked with golden ribbons' : 'Festive cookie platter on marble surface'}
                     className="w-full h-full object-cover rounded-xl shadow-2xl brightness-95"
                     loading="lazy"
                     decoding="async"
                   />
                 </picture>
                 {/* overlay product cluster - decorative but with descriptive alt */}
-                <img src={cookieBox} alt="Cookie gift box with golden tones" className="absolute -bottom-6 -left-6 w-32 h-20 object-cover rounded-lg shadow-lg transform rotate-2" />
+                <img
+                  src={isGoldenSeason ? cookiesInBasket : cookieBox}
+                  alt={isGoldenSeason ? 'Basket of cookies prepared for gifting' : 'Cookie gift box with golden tones'}
+                  className="absolute -bottom-6 -left-6 w-32 h-20 object-cover rounded-lg shadow-lg transform rotate-2"
+                />
                 <img src={packaging} alt="Cookie packaging with warm palette" className="absolute -bottom-8 -right-8 w-28 h-20 object-cover rounded-lg shadow-lg transform -rotate-3" />
               </div>
             </div>

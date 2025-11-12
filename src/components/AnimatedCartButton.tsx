@@ -52,13 +52,13 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     min-width: fit-content;
     height: 38px;
-    padding: 0 16px 0 14px;
+    padding: 0 18px 0 20px;
     border-radius: 9999px;
     border: none;
-    background-color: #f8eddc;
+    background-color: transparent;
     position: relative;
     cursor: pointer;
     transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
@@ -76,21 +76,46 @@ const StyledWrapper = styled.div`
     will-change: transform, box-shadow;
   }
 
+  .btn-cart::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: #f8eddc;
+    z-index: 0;
+    pointer-events: none;
+    transition: background-color 0.25s ease;
+  }
+
+  .btn-cart::after {
+    content: '';
+    position: absolute;
+    inset: -22%;
+    border-radius: inherit;
+    background:
+      radial-gradient(70% 100% at 18% 0%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0)),
+      linear-gradient(135deg, rgba(241, 181, 92, 0.25), rgba(207, 142, 68, 0.18));
+    opacity: 0;
+    transform: scale(0.86);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 0;
+    pointer-events: none;
+  }
+
   .btn-cart:hover {
-    background-color: #e8c288;
-    box-shadow: 0 8px 20px rgba(211, 166, 97, 0.12);
-    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 26px rgba(211, 166, 97, 0.18);
+    transform: translateY(-2px) scale(1.03) !important;
   }
 
   .btn-cart:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px #f1b55c;
+    box-shadow: 0 0 0 2px #f1b55c, 0 12px 26px rgba(211, 166, 97, 0.18);
     outline-offset: 2px;
   }
 
   .btn-cart:active {
-    transform: translateY(0) !important;
-    box-shadow: 0 2px 8px rgba(211, 166, 97, 0.08);
+    transform: translateY(0) scale(0.99) !important;
+    box-shadow: 0 4px 12px rgba(211, 166, 97, 0.12);
   }
 
   .icon-cart {
@@ -98,9 +123,10 @@ const StyledWrapper = styled.div`
     height: 22px;
     flex-shrink: 0;
     transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Ensure icon doesn't leak outside button */
+  /* Allow full bag outline rendering; button clip handles containment */
     position: relative;
     z-index: 1;
+  overflow: visible;
   }
 
   .icon-cart path {
@@ -162,6 +188,12 @@ const StyledWrapper = styled.div`
     fill: #f1b55c !important;
   }
 
+  .btn-cart:hover::after,
+  .btn-cart:focus-visible::after {
+    opacity: 1;
+    transform: scale(1);
+  }
+
   /* Active state for click feedback */
   .btn-cart:active > .icon-cart {
     transform: scale(1.08) !important;
@@ -176,7 +208,9 @@ const StyledWrapper = styled.div`
     .btn-cart,
     .icon-cart,
     .icon-cart path,
-    .quantity-badge {
+    .quantity-badge,
+    .btn-cart::before,
+    .btn-cart::after {
       transition: none;
       animation: none;
     }

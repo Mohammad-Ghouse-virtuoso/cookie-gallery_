@@ -15,10 +15,15 @@ import Story from "./pages/Story";
 import BehindTheScenes from "./pages/BehindTheScenes";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ProductDetailPage from "./pages/ProductDetailPage.tsx";
+import GoldenSeason from "./pages/GoldenSeason";
+import GiftModal from "./components/gifting/GiftModal";
+import GiftExperiencePage from "./pages/gift/GiftExperiencePage";
+import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
 
 // Import AuthProvider
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { GiftExperienceProvider } from "./context/GiftExperienceContext";
 
 // New component to handle conditional layout
 function AppContent() {
@@ -45,9 +50,12 @@ function AppContent() {
           <Route path="cookies" element={<CookieCatalogue />} />
           <Route path="product/:cookieId" element={<ProductDetailPage />} />
           <Route path="checkout" element={<Checkout />} />
+          <Route path="checkout/address" element={<CheckoutAddressPage />} />
           <Route path="story" element={<Story />} />
           <Route path="behind-the-scenes" element={<BehindTheScenes />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
+          <Route path="golden-season" element={<GoldenSeason />} />
+          <Route path="gift/:boxId" element={<GiftExperiencePage />} />
         </Route>
       </Routes>
     </>
@@ -60,7 +68,10 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
-          <AppContent />
+          <GiftExperienceProvider>
+            <AppContent />
+            <GiftModal />
+          </GiftExperienceProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

@@ -22,6 +22,7 @@ A modern, full-stack e-commerce application for a cookie store. Built with React
 - Smooth transitions and hover animations
 - Animated testimonials with auto-scroll
 - Mobile-first design
+- Dedicated gifting journey at `/gift/:boxId` with a calm, tactile layout (modal fallback on small screens)
 
 Loading skeletons and animations
 ### 📱 **Additional Pages & Content**
@@ -41,6 +42,12 @@ Loading skeletons and animations
 | [Framer Motion](https://www.framer.com/motion/)           | [CORS](https://www.npmjs.com/package/cors)                           |                                                             |                                   |
 | [React Router 7](https://reactrouter.com/)                | [Dotenv](https://www.npmjs.com/package/dotenv)                       |                                                             |                                   |
 | [React Icons](https://react-icons.github.io/react-icons/) | Built-in Node Crypto                                                 |                                                             |                                   |
+
+### 🎨 Warm Palette Tokens
+- `--bg-cream` & `--card-bg` — soft foundations for the gifting route
+- `--cocoa` & `--caramel` — primary action and accent tones
+- `--muted-ink` — secondary text color for longer copy
+- `--danger` — warm alert hue used for inline validation
 
 ## 🚀 Getting Started
 

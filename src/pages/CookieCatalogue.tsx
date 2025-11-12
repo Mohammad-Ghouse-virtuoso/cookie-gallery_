@@ -67,7 +67,11 @@ export default function CookieCatalogue() {
   const filterButtonActiveClasses = '!bg-[#E2B97F] !text-white !border-transparent !shadow-[0_8px_20px_rgba(193,140,93,0.28)] hover:!bg-[#E3BA8A] hover:!shadow-[0_10px_24px_rgba(193,140,93,0.32)]';
   const filterButtonInactiveClasses = '!bg-white !text-[#3A2E27] !border-[#E3E3E3] !shadow-[0_2px_6px_rgba(58,46,39,0.08)] hover:!bg-[#F8EEDB] hover:!shadow-[0_6px_16px_rgba(226,185,127,0.16)]';
   const filterChipRowClasses = 'flex gap-[12px] overflow-x-auto pb-1 scroll-smooth justify-start md:flex-wrap md:justify-start md:overflow-visible';
-  const clearFiltersButtonClasses = 'transform inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold bg-[#F2D3A8] text-[#5B3A20] transition-all duration-200 ease-out hover:bg-[#E8C58F] hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(226,185,127,0.24)] hover:underline hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2B97F] focus-visible:ring-offset-2 active:scale-[0.96] active:shadow-none';
+  const clearFiltersButtonClasses = [
+    'relative inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold',
+    'bg-[#3B2B1A] text-white shadow-[0_10px_24px_rgba(59,43,26,0.25)] transition-transform duration-200 ease-out',
+    'hover:-translate-y-0.5 hover:bg-[#4B4035] hover:shadow-[0_14px_28px_rgba(59,43,26,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E2B97F] focus-visible:ring-offset-2 active:scale-[0.96]'
+  ].join(' ');
 
   const toggleDietaryFilter = (value: string) => {
     setActiveDietaryFilters(prev =>
@@ -133,9 +137,20 @@ export default function CookieCatalogue() {
               <label htmlFor="cookie-search" className="sr-only">Search cookies</label>
               <span
                 aria-hidden="true"
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[20px] leading-none"
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center text-[#8B7A68] z-10"
               >
-                🔍
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 32 32"
+                  role="img"
+                >
+                  <path
+                    d="M19 3C13.488 3 9 7.488 9 13c0 2.395.84 4.59 2.25 6.313L3.281 27.281l1.438 1.438L12.688 20.75C14.41 22.16 16.605 23 19 23c5.512 0 10-4.488 10-10S24.512 3 19 3zm0 2c4.43 0 8 3.57 8 8s-3.57 8-8 8-8-3.57-8-8 3.57-8 8-8z"
+                    fill="#8B7A68"
+                  />
+                </svg>
               </span>
               <input
                 id="cookie-search"

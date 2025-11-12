@@ -1,8 +1,8 @@
 // src/pages/Story.tsx
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import baker from '../assets/Our-Baker.jpeg';
+import baker from '../assets/baker_4.png';
 import stall from '../assets/first-stall-new.jpeg';
 import bake from '../assets/first-batch1.jpeg';
 import homeOven from '../assets/from-oven.jpeg';
@@ -25,6 +25,11 @@ const sample = [
 export default function Story() {
   const trackRef = useRef<HTMLDivElement>(null);
   const scrollBy = (dx: number) => trackRef.current?.scrollBy({ left: dx, behavior: 'smooth' });
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
   return (
     <div className="font-inter antialiased">
       {/* Scoped styles for Story page only */}
@@ -42,7 +47,7 @@ export default function Story() {
 
       <section className="py-10">
         <div className="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
-          <img src={baker} alt="Founder" className="rounded-3xl shadow-xl object-cover w-full h-72 md:h-96 border-8 border-rose-200 ring-1 ring-rose-300/40"/>
+          <img src={baker} alt="Head baker finishing a tray of cookies" className="rounded-3xl shadow-xl object-cover w-full h-72 md:h-96 border-8 border-rose-200 ring-1 ring-rose-300/40"/>
           <div>
             <h2 className="text-3xl font-extrabold text-rose-400 mb-2">Meet the Baker-queen 👑</h2>
             <p className="text-white-300 leading-relaxed">Hi, I’m the cookie-maker-in-chief. I grew up with the smell of warm butter and vanilla. After gifting cookies to friends, a small Instagram pop-up turned into this humble bakery. Every dough is mixed by hand and every batch is tasted (with great joy!).</p>
