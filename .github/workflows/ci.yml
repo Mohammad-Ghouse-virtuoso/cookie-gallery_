@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, cookie_gallery_stripe ]
+  pull_request:
+    branches: [ main, cookie_gallery_stripe ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linter
+      run: npm run lint
+    
+    - name: Run tests
+      run: npm run test -- --run
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Install backend dependencies
+      run: |
+        cd src/backend
+        npm ci
+    
+    - name: Check for security vulnerabilities
+      run: npm audit --audit-level=high
+      continue-on-error: true
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check for secrets in code
+      run: |
+        if grep -r "sk_live_" . --exclude-dir=node_modules --exclude-dir=.git; then
+          echo "❌ Found live Stripe keys in code!"
+          exit 1
+        fi
+        if grep -r "firebase.*private.*key" . --exclude-dir=node_modules --exclude-dir=.git --exclude=".env.example"; then
+          echo "⚠️ Warning: Possible Firebase credentials in code"
+        fi
+        echo "✅ No obvious secrets found"

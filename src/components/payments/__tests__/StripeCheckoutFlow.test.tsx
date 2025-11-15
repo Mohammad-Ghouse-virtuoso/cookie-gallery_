@@ -165,10 +165,11 @@ describe('StripeCheckoutFlow', () => {
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/order-status'), expect.any(Object));
     });
 
-    await userEvent.click(screen.getByRole('button', { name: /check again now/i }));
+    const checkButton = await screen.findByRole('button', { name: /check again now/i });
+    await userEvent.click(checkButton);
 
     await waitFor(() => {
-      expect(navigateSpy).toHaveBeenCalledWith('/order-success');
+      expect(navigateSpy).toHaveBeenCalledWith('/order-success', { replace: true });
     }, { timeout: 2000 });
 
     rerender(<div />);

@@ -7,6 +7,8 @@ const cors = require('cors');
 const crypto = require('crypto');
 const path = require('path');
 const admin = require('firebase-admin');
+const rateLimit = require('express-rate-limit');
+const logger = require('./logger');
 
 // Load env (supports multiline private key with \n)
 // 1) Root .env
@@ -54,6 +56,26 @@ app.use((req, res, next) => {
   next();
 });
 
+// Rate limiting configuration
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: { success: false, message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const strictLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // Stricter limit for payment endpoints
+  message: { success: false, message: 'Too many payment requests, please try again later.' },
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+app.use('/create-payment-intent', strictLimiter);
+app.use('/get-payment-details', strictLimiter);
+
 const PORT = process.env.PORT || 5000;
 // Server boot ID to detect restarts from the client
 const SERVER_BOOT_ID = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -81,12 +103,12 @@ let adminDb = null;
         });
       }
       adminDb = admin.firestore();
-      console.log('Firebase Admin initialized for Auth and Firestore.');
+      logger.info('Firebase Admin initialized for Auth and Firestore.');
     } else {
-      console.warn('Firebase Admin not initialized: missing FIREBASE_* env. ID token verification and Firestore writes will fail.');
+      logger.warn('Firebase Admin not initialized: missing FIREBASE_* env. ID token verification and Firestore writes will fail.');
     }
   } catch (e) {
-    console.warn('Firebase Admin initialization failed:', e.message);
+    logger.error('Firebase Admin initialization failed:', { error: e.message });
   }
 })();
 
@@ -112,12 +134,12 @@ const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 if (STRIPE_SECRET_KEY) {
   try {
     stripeInstance = Stripe(STRIPE_SECRET_KEY);
-    console.log('Stripe initialized: Payments enabled.');
+    logger.info('Stripe initialized: Payments enabled.');
   } catch (e) {
-    console.warn('Failed to initialize Stripe, payments disabled:', e.message);
+    logger.error('Failed to initialize Stripe, payments disabled:', { error: e.message });
   }
 } else {
-  console.warn('Stripe credentials missing. Set STRIPE_SECRET_KEY. /create-payment-intent will be disabled.');
+  logger.warn('Stripe credentials missing. Set STRIPE_SECRET_KEY. /create-payment-intent will be disabled.');
 }
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
@@ -138,11 +160,7 @@ const buildCancelUrl = (origin, returnPath, orderId) => {
 };
 
 const logPaymentEvent = (message, payload = {}) => {
-  const meta = {
-    timestamp: new Date().toISOString(),
-    ...payload,
-  };
-  console.log(`[payments] ${message}`, JSON.stringify(meta));
+  logger.info(`[payments] ${message}`, payload);
 };
 
 const getOrdersCollection = () => {
@@ -166,7 +184,7 @@ const findOrderByIdempotency = async (idempotencyKey, email) => {
     const doc = snapshot.docs[0];
     return { id: doc.id, data: doc.data() };
   } catch (error) {
-    console.warn('Failed to query order by idempotency', error.message);
+    logger.warn('Failed to query order by idempotency', error.message);
     return null;
   }
 };
@@ -184,13 +202,43 @@ const findOrderBySessionId = async (sessionId) => {
     const doc = snapshot.docs[0];
     return { id: doc.id, data: doc.data() };
   } catch (error) {
-    console.warn('Failed to find order by session id', error.message);
+    logger.warn('Failed to find order by session id', error.message);
     return null;
   }
 };
 // Health endpoint exposes a non-sensitive boot id so client can detect backend restarts
-app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true, boot_id: SERVER_BOOT_ID });
+app.get('/health', async (req, res) => {
+  const healthCheck = {
+    ok: true,
+    boot_id: SERVER_BOOT_ID,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {
+      firebase: !!adminDb,
+      stripe: !!stripeInstance,
+    },
+    memory: {
+      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+    }
+  };
+
+  // Test Firestore connectivity if available
+  if (adminDb) {
+    try {
+      await adminDb.collection('health_checks').doc('test').set({ 
+        timestamp: admin.firestore.FieldValue.serverTimestamp() 
+      }, { merge: true });
+      healthCheck.services.firestoreConnectivity = 'ok';
+    } catch (error) {
+      healthCheck.services.firestoreConnectivity = 'error';
+      healthCheck.ok = false;
+      logger.error('Health check: Firestore connectivity failed', { error: error.message });
+    }
+  }
+
+  const status = healthCheck.ok ? 200 : 503;
+  res.status(status).json(healthCheck);
 });
 
 
@@ -198,7 +246,7 @@ app.get('/health', (req, res) => {
 
 app.get('/test-db', async (req, res) => {
   try {
-    console.log('[diag] admin.apps.length =', admin.apps.length, 'adminDb set =', !!adminDb);
+    logger.info('[diag] admin.apps.length =', admin.apps.length, 'adminDb set =', !!adminDb);
     if (!adminDb) {
       return res.status(503).json({ success: false, message: 'Firestore not configured on server.' });
     }
@@ -207,10 +255,10 @@ app.get('/test-db', async (req, res) => {
       message: 'Test data saved successfully!',
       timestamp: admin.firestore.FieldValue.serverTimestamp()
     });
-    console.log('Successfully wrote to Firestore from /test-db route.');
+    logger.info('Successfully wrote to Firestore from /test-db route.');
     res.status(200).json({ success: true, message: 'Test data saved to Firestore.' });
   } catch (error) {
-    console.error('Error writing to Firestore:', error);
+    logger.error('Error writing to Firestore:', error);
     res.status(500).json({ success: false, message: 'Failed to write test data to Firestore.' });
   }
 });
@@ -254,7 +302,7 @@ app.post('/create-payment-intent', async (req, res) => {
       paymentIntentId: paymentIntent.id
     });
   } catch (error) {
-    console.error('Error creating Stripe payment intent:', error);
+    logger.error('Error creating Stripe payment intent:', error);
     res.status(500).json({ message: "Failed to create Stripe payment intent.", error: error.message });
   }
 });
@@ -279,10 +327,10 @@ app.post('/save-user', requireAuth, async (req, res) => {
       phoneNumber: phoneNumber || null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
-    console.log('Saved user profile for', emailKey);
+    logger.info('Saved user profile for', emailKey);
     res.status(200).json({ success: true, message: 'User saved.' });
   } catch (err) {
-    console.error('Error saving user profile:', err);
+    logger.error('Error saving user profile:', err);
     res.status(500).json({ success: false, message: 'Failed to save user.' });
   }
 });
@@ -302,7 +350,7 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
   }
   
   try {
-    console.log('🔍 Retrieving payment details for:', paymentIntentId);
+    logger.info('🔍 Retrieving payment details for:', paymentIntentId);
 
     // Retrieve payment intent with expanded payment_method and latest_charge for robust access
     const paymentIntent = await stripeInstance.paymentIntents.retrieve(
@@ -316,7 +364,7 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
       try {
         paymentMethod = await stripeInstance.paymentMethods.retrieve(paymentMethod);
       } catch (pmErr) {
-        console.warn('⚠️ Could not expand payment method, continuing with charge details fallback:', pmErr.message);
+        logger.warn('⚠️ Could not expand payment method, continuing with charge details fallback:', pmErr.message);
         paymentMethod = null;
       }
     }
@@ -327,7 +375,7 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
       try {
         charge = await stripeInstance.charges.retrieve(charge);
       } catch (chErr) {
-        console.warn('⚠️ Could not expand latest_charge:', chErr.message);
+        logger.warn('⚠️ Could not expand latest_charge:', chErr.message);
         charge = null;
       }
     }
@@ -361,10 +409,10 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
       chargeId: charge?.id || null,
     };
 
-    console.log('✅ Payment details retrieved successfully');
+    logger.info('✅ Payment details retrieved successfully');
     res.status(200).json({ success: true, paymentDetails });
   } catch (error) {
-    console.error('❌ Error retrieving payment details:', error);
+    logger.error('❌ Error retrieving payment details:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to retrieve payment details.', 
@@ -414,10 +462,10 @@ app.post('/save-order-data', requireAuth, async (req, res) => {
   const userId = String(req.user.email).toLowerCase();
 
   try {
-    console.log('💾 Saving order data for user:', userId);
-    console.log('💳 Payment Intent ID:', paymentIntentId);
-    console.log('🍪 Items:', JSON.stringify(items));
-    console.log('💳 Card:', cardBrand, 'ending in', cardLast4);
+    logger.info('💾 Saving order data for user:', userId);
+    logger.info('💳 Payment Intent ID:', paymentIntentId);
+    logger.info('🍪 Items:', JSON.stringify(items));
+    logger.info('💳 Card:', cardBrand, 'ending in', cardLast4);
     
     const orderRef = adminDb.collection('orders').doc(paymentIntentId);
     await orderRef.set({
@@ -458,11 +506,11 @@ app.post('/save-order-data', requireAuth, async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log('✅ Order data saved successfully to Firestore with enhanced metadata');
+    logger.info('✅ Order data saved successfully to Firestore with enhanced metadata');
     res.status(200).json({ success: true, message: 'Order data saved successfully.' });
   } catch (error) {
-    console.error('❌ Error saving order data:', error);
-    console.error('Error details:', error.message);
+    logger.error('❌ Error saving order data:', error);
+    logger.error('Error details:', error.message);
     res.status(500).json({ success: false, message: 'Failed to save order data.', error: error.message });
   }
 });
@@ -570,7 +618,7 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       providerSessionId: session.id,
     });
   } catch (error) {
-    console.error('Failed to create order session', error);
+    logger.error('Failed to create order session', error);
     res.status(500).json({ message: error?.message || 'Failed to create checkout order.' });
   }
 });
@@ -596,7 +644,7 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
     const order = snapshot.data();
     const storedEmail = typeof order.userEmail === 'string' ? order.userEmail.toLowerCase() : '';
     if (storedEmail && storedEmail !== tokenEmail) {
-      console.warn('[order-status] email mismatch', { orderId, storedEmail, tokenEmail });
+      logger.warn('[order-status] email mismatch', { orderId, storedEmail, tokenEmail });
       if (process.env.NODE_ENV !== 'development') {
         return res.status(403).json({ message: 'Forbidden: order does not belong to the current user.' });
       }
@@ -634,14 +682,14 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
           logPaymentEvent('order_marked_failed_poll', { localOrderId: orderId, sessionId: session.id });
         }
       } catch (err) {
-        console.warn('Failed to reconcile checkout session', err.message);
+        logger.warn('Failed to reconcile checkout session', err.message);
       }
     }
 
     const lastUpdate = order.updatedAt?.toDate ? order.updatedAt.toDate().toISOString() : null;
     res.status(200).json({ status, providerInfo, lastUpdate });
   } catch (error) {
-    console.error('Error fetching order status', error);
+    logger.error('Error fetching order status', error);
     res.status(500).json({ message: 'Failed to load order status.' });
   }
 });
@@ -700,7 +748,7 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
           }
         }
       } catch (error) {
-        console.warn('Failed to retrieve checkout session for payment-status', error.message);
+        logger.warn('Failed to retrieve checkout session for payment-status', error.message);
       }
     }
 
@@ -718,7 +766,7 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
       try {
         session = await stripeInstance.checkout.sessions.retrieve(lookupSessionId, { expand: ['payment_intent'] });
       } catch (error) {
-        console.warn('Failed to retrieve checkout session for payment-status', error.message);
+        logger.warn('Failed to retrieve checkout session for payment-status', error.message);
       }
     }
 
@@ -764,7 +812,7 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
 
     res.status(200).json({ status, lastKnownError });
   } catch (error) {
-    console.error('Error resolving payment status', error);
+    logger.error('Error resolving payment status', error);
     res.status(500).json({ message: 'Failed to resolve payment status.' });
   }
 });
@@ -793,7 +841,7 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
     const order = snapshot.data();
     const storedEmail = typeof order.userEmail === 'string' ? order.userEmail.toLowerCase() : '';
     if (storedEmail && storedEmail !== tokenEmail) {
-      console.warn('[resume-payment] email mismatch', { orderId, storedEmail, tokenEmail });
+      logger.warn('[resume-payment] email mismatch', { orderId, storedEmail, tokenEmail });
       if (process.env.NODE_ENV !== 'development') {
         return res.status(403).json({ message: 'Forbidden: order does not belong to the current user.' });
       }
@@ -820,7 +868,7 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
           });
         }
       } catch (err) {
-        console.warn('Unable to reuse existing checkout session', err.message);
+        logger.warn('Unable to reuse existing checkout session', err.message);
       }
     }
 
@@ -871,7 +919,7 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
     logPaymentEvent('order_resumed_new_session', { localOrderId: orderId, sessionId: session.id, email: tokenEmail });
     res.status(200).json({ checkoutUrl: session.url, status: 'pending', providerSessionId: session.id });
   } catch (error) {
-    console.error('Failed to resume payment', error);
+    logger.error('Failed to resume payment', error);
     res.status(500).json({ message: error?.message || 'Unable to resume payment.' });
   }
 });
@@ -890,7 +938,7 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
   try {
     event = stripeInstance.webhooks.constructEvent(req.rawBody, signature, STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('Webhook signature verification failed', err.message);
+    logger.error('Webhook signature verification failed', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -941,12 +989,12 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Error handling webhook', error);
+    logger.error('Error handling webhook', error);
     res.status(500).send('Webhook handler error');
   }
 });
 
 // --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+  logger.info(`Backend server running on http://localhost:${PORT}`);
 });
