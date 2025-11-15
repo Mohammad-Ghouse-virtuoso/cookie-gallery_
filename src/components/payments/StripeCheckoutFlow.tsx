@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { clearPendingOrder, loadPendingOrder, persistPendingOrder, updatePendingOrderStatus } from '@/lib/pendingOrderStorage';
 import type { PendingOrderSnapshot } from '@/types/checkout';
 import type { CartLineItemDetail } from '@/types/cart';
+import * as Sentry from '@sentry/react';
 
 export type CartSnapshot = Record<string, number>;
 
@@ -40,6 +41,24 @@ const MAX_AUTO_POLLS = Math.round(30000 / POLL_INTERVAL_MS);
 const redirectTo = (url: string) => {
   if (typeof window !== 'undefined' && window.location) {
     window.location.assign(url);
+  }
+};
+
+const updateCheckoutScopeTags = (tags: {
+  localOrderId?: string | null;
+  providerSessionId?: string | null;
+}) => {
+  const scope = Sentry.getCurrentScope();
+  if (!scope) {
+    return;
+  }
+  if ('localOrderId' in tags) {
+    const value = tags.localOrderId ?? undefined;
+    scope.setTag('localOrderId', value);
+  }
+  if ('providerSessionId' in tags) {
+    const value = tags.providerSessionId ?? undefined;
+    scope.setTag('providerSessionId', value);
   }
 };
 
@@ -107,6 +126,7 @@ export function StripeCheckoutFlow({
   const pollAttempts = useRef(0);
   const pollTimerRef = useRef<number | null>(null);
   const completionIssued = useRef(false);
+  const returnBreadcrumbLogged = useRef(false);
 
   const syncFromStorage = useCallback(() => {
     const stored = loadPendingOrder();
@@ -174,6 +194,7 @@ export function StripeCheckoutFlow({
     pollAttempts.current = 0;
     setHasTimedOut(false);
     setCurrentOrder(null);
+    updateCheckoutScopeTags({ localOrderId: null, providerSessionId: null });
   }, []);
 
   const handleOrderCompleted = useCallback(() => {
@@ -241,6 +262,15 @@ export function StripeCheckoutFlow({
       }) ?? currentOrder;
       setCurrentOrder(updated);
       setBanner(buildBanner('info', 'Verifying payment with Stripe. This can take a few seconds.'));
+      Sentry.addBreadcrumb({
+        category: 'payment.flow',
+        message: 'Polling order status with backend',
+        level: 'info',
+        data: {
+          localOrderId: currentOrder.localOrderId,
+          attempt: pollAttempts.current,
+        },
+      });
 
       if (!manual && pollAttempts.current < MAX_AUTO_POLLS) {
         if (pollTimerRef.current) {
@@ -334,9 +364,28 @@ export function StripeCheckoutFlow({
       persistPendingOrder(snapshot);
       setCurrentOrder(snapshot);
       setBanner(buildBanner('info', 'Redirecting to Stripe for secure payment…'));
+      updateCheckoutScopeTags({
+        localOrderId: snapshot.localOrderId,
+        providerSessionId: snapshot.providerSessionId ?? null,
+      });
+      Sentry.addBreadcrumb({
+        category: 'payment.flow',
+        message: 'Redirecting user to Stripe checkout',
+        level: 'info',
+        data: {
+          localOrderId: snapshot.localOrderId,
+          hasProviderSession: Boolean(snapshot.providerSessionId),
+        },
+      });
       redirectTo(payload.checkoutUrl);
     } catch (error: any) {
       setBanner(buildBanner('error', error?.message || 'Unable to start payment. Please try again.'));
+      Sentry.captureException(error, {
+        extra: {
+          reason: 'create_order_failed',
+          cartSize: Object.keys(cart ?? {}).length,
+        },
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -394,6 +443,18 @@ export function StripeCheckoutFlow({
           providerSessionId: payload.providerSessionId ?? currentOrder.providerSessionId,
         }) ?? currentOrder;
         setCurrentOrder(updated);
+        updateCheckoutScopeTags({
+          localOrderId: updated.localOrderId,
+          providerSessionId: updated.providerSessionId ?? null,
+        });
+        Sentry.addBreadcrumb({
+          category: 'payment.flow',
+          message: 'Resuming Stripe checkout session',
+          level: 'info',
+          data: {
+            localOrderId: updated.localOrderId,
+          },
+        });
         redirectTo(payload.checkoutUrl);
         return;
       }
@@ -401,6 +462,12 @@ export function StripeCheckoutFlow({
     } catch (error: any) {
       setBanner(buildBanner('error', error?.message || 'Unable to resume payment. Returning you to the cart.'));
       onReturnToCart?.();
+      Sentry.captureException(error, {
+        extra: {
+          reason: 'resume_order_failed',
+          localOrderId: currentOrder?.localOrderId,
+        },
+      });
     }
   }, [currentOrder, ensureOnline, handleOrderCompleted, onReturnToCart, requireAuth]);
 
@@ -428,6 +495,22 @@ export function StripeCheckoutFlow({
       pollAttempts.current = 0;
       setHasTimedOut(false);
       pollStatus(false);
+    }
+    if (!returnBreadcrumbLogged.current && currentOrder) {
+      returnBreadcrumbLogged.current = true;
+      updateCheckoutScopeTags({
+        localOrderId: currentOrder.localOrderId,
+        providerSessionId: currentOrder.providerSessionId ?? null,
+      });
+      Sentry.addBreadcrumb({
+        category: 'payment.flow',
+        message: 'User returned from Stripe checkout',
+        level: 'info',
+        data: {
+          localOrderId: currentOrder.localOrderId,
+          status: currentOrder.status,
+        },
+      });
     }
   }, [autoInitialize, createOrder, currentOrder, pollStatus]);
 

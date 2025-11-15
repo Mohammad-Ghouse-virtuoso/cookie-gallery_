@@ -1,0 +1,103 @@
+{
+  "rules": [
+    {
+      "name": "Payment-Failure-High",
+      "environment": "production",
+      "action_match": "any",
+      "filter_match": "any",
+      "frequency": 5,
+      "projects": ["cookie-gallery"],
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+          "interval": "5m",
+          "value": 3,
+          "comparison": ">"
+        },
+        {
+          "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+          "key": "category",
+          "match": "equals",
+          "value": "payment"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "channel": "#payments-alerts",
+          "workspace": "T0123456789",
+          "token": "${SLACK_SENTRY_ALERT_WEBHOOK}"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "member",
+          "targetIdentifier": "oncall"
+        }
+      ],
+      "owner": "team:payments",
+      "organization_slug": "yourorg"
+    },
+    {
+      "name": "Webhook-Reconcile-Failure",
+      "environment": "production",
+      "action_match": "all",
+      "filter_match": "any",
+      "frequency": 5,
+      "projects": ["cookie-gallery"],
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.tagged_event.TaggedEventCondition",
+          "key": "status",
+          "match": "equals",
+          "value": "failed_reconcile"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "channel": "#payments-alerts",
+          "workspace": "T0123456789",
+          "token": "${SLACK_SENTRY_ALERT_WEBHOOK}"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "team",
+          "targetIdentifier": "oncall"
+        }
+      ],
+      "owner": "team:payments",
+      "organization_slug": "yourorg"
+    },
+    {
+      "name": "High-Rate-Errors",
+      "environment": "production",
+      "action_match": "any",
+      "filter_match": "any",
+      "frequency": 5,
+      "projects": ["cookie-gallery"],
+      "conditions": [
+        {
+          "id": "sentry.rules.conditions.percent_sessions.PercentSessionsCondition",
+          "interval": "5m",
+          "value": 5,
+          "comparison": ">"
+        }
+      ],
+      "actions": [
+        {
+          "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+          "channel": "#payments-alerts",
+          "workspace": "T0123456789",
+          "token": "${SLACK_SENTRY_ALERT_WEBHOOK}"
+        },
+        {
+          "id": "sentry.mail.actions.NotifyEmailAction",
+          "targetType": "member",
+          "targetIdentifier": "oncall"
+        }
+      ],
+      "owner": "team:payments",
+      "organization_slug": "yourorg"
+    }
+  ]
+}

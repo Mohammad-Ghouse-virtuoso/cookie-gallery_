@@ -5,6 +5,7 @@ Thank you for your interest in contributing to Cookie Gallery! This document pro
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
 - Git
@@ -13,41 +14,52 @@ Thank you for your interest in contributing to Cookie Gallery! This document pro
 ### Initial Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery.git
    cd cookie-gallery
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    cd src/backend && npm install && cd ../..
    ```
 
 3. **Setup environment variables**
+
    ```bash
    # Frontend
    cp .env.example .env
-   
+
    # Backend
    cp src/backend/.env.example src/backend/.env
    ```
    
    Fill in the required values in both `.env` files.
 
+   **Sentry & Alerting**
+   - `SENTRY_DSN_BACKEND` (and optional legacy `SENTRY_DSN`) control backend error reporting.
+   - `SENTRY_DSN_FRONTEND` or `VITE_SENTRY_DSN` surface the browser DSN. Set `VITE_SENTRY_SAMPLE_RATE` to tune tracing (default `0.1`).
+   - Provide a Slack incoming webhook at `SLACK_SENTRY_ALERT_WEBHOOK` so Sentry alerts can page the on-call channel.
+
 4. **Install git-secrets (Security)**
-   
+
    **macOS:**
+
    ```bash
    brew install git-secrets
    ```
-   
+
    **Linux (Ubuntu/Debian):**
+
    ```bash
    sudo apt-get install git-secrets
    ```
-   
+
    **Windows:**
+
    ```bash
    # Using Git Bash or WSL
    git clone https://github.com/awslabs/git-secrets.git
@@ -56,19 +68,21 @@ Thank you for your interest in contributing to Cookie Gallery! This document pro
    ```
 
 5. **Configure git-secrets for this repository**
-   ```bash
-   cd cookie-gallery
-   git secrets --install
-   git secrets --register-aws
-   
-   # Add custom patterns from our patterns file
-   while IFS= read -r pattern; do
-     [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
-     git secrets --add "$pattern"
-   done < .git-secrets-patterns
-   ```
+
+    ```bash
+    cd cookie-gallery
+    git secrets --install
+    git secrets --register-aws
+
+    # Add custom patterns from our patterns file
+    while IFS= read -r pattern; do
+       [[ "$pattern" =~ ^#.*$ || -z "$pattern" ]] && continue
+       git secrets --add "$pattern"
+    done < .git-secrets-patterns
+    ```
 
 6. **Initialize Husky (Git Hooks)**
+
    ```bash
    npm run prepare
    ```
@@ -80,12 +94,14 @@ Thank you for your interest in contributing to Cookie Gallery! This document pro
 ### Running the Application
 
 **Frontend:**
+
 ```bash
 npm run dev
 # Runs on http://localhost:5173
 ```
 
 **Backend:**
+
 ```bash
 cd src/backend
 node server.js
@@ -95,29 +111,36 @@ node server.js
 ### Testing
 
 **Run all tests:**
+
 ```bash
 npm run test
 ```
 
 **Run tests in watch mode:**
+
 ```bash
 npm run test -- --watch
 ```
 
 **Run backend tests:**
+
 ```bash
 cd src/backend
 npm test
 ```
 
+Backend Jest suites cover webhook signature verification/idempotency and ensure Husky hooks block pushes without lint/tests. Run them after editing server or Git hook scripts.
+
 ### Linting
 
 **Check for linting errors:**
+
 ```bash
 npm run lint
 ```
 
 **Auto-fix linting errors:**
+
 ```bash
 npm run lint:fix
 ```
@@ -125,6 +148,7 @@ npm run lint:fix
 ### Git Workflow
 
 1. **Create a feature branch**
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -135,6 +159,7 @@ npm run lint:fix
    - Follow existing code style
 
 3. **Commit your changes**
+
    ```bash
    git add .
    git commit -m "feat: add awesome feature"
@@ -155,6 +180,7 @@ npm run lint:fix
    - `chore:` Maintenance tasks
 
 4. **Push your changes**
+
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -172,20 +198,25 @@ npm run lint:fix
 ## 🔒 Security Guidelines
 
 ### Secrets Management
+
 - **NEVER** commit API keys, tokens, or credentials
 - Always use environment variables for sensitive data
 - git-secrets will automatically block commits with detected secrets
 - If you accidentally commit a secret, rotate it immediately and use `git filter-branch` or BFG Repo Cleaner
 
 ### Bypassing Git Hooks (Not Recommended)
+
 If absolutely necessary (emergencies only):
+
 ```bash
 git commit --no-verify
 git push --no-verify
 ```
 
 ### Adding Exceptions to git-secrets
+
 If a pattern is incorrectly flagged as a secret:
+
 ```bash
 git secrets --add --allowed 'pattern-to-allow'
 ```
@@ -193,28 +224,31 @@ git secrets --add --allowed 'pattern-to-allow'
 ## 🧪 Testing Guidelines
 
 ### Writing Tests
+
 - Write tests for all new features
 - Maintain test coverage above 80%
 - Use descriptive test names
 - Follow AAA pattern: Arrange, Act, Assert
 
 **Example:**
+
 ```typescript
 describe('PaymentService', () => {
-  test('should successfully finalize order with matching amounts', async () => {
-    // Arrange
-    const mockOrder = { totalAmount: 1000, status: 'pending' };
-    
-    // Act
-    const result = await paymentService.finalizeOrder('order_123', providerData);
-    
-    // Assert
-    expect(result.success).toBe(true);
-  });
+   test('should successfully finalize order with matching amounts', async () => {
+      // Arrange
+      const mockOrder = { totalAmount: 1000, status: 'pending' };
+
+      // Act
+      const result = await paymentService.finalizeOrder('order_123', providerData);
+
+      // Assert
+      expect(result.success).toBe(true);
+   });
 });
 ```
 
 ### Running Specific Tests
+
 ```bash
 npm test -- src/components/NavBar.test.tsx
 ```
@@ -231,6 +265,7 @@ npm test -- src/components/NavBar.test.tsx
 ## 🐛 Reporting Bugs
 
 Create an issue on GitHub with:
+
 - Clear title and description
 - Steps to reproduce
 - Expected vs actual behavior
@@ -240,6 +275,7 @@ Create an issue on GitHub with:
 ## 💡 Requesting Features
 
 Create an issue with:
+
 - Feature description
 - Use case
 - Proposed implementation (optional)
@@ -260,4 +296,6 @@ Create an issue with:
 
 ---
 
-**Happy Coding! 🍪**
+## 🎉 Happy Coding
+
+Enjoy building delightful cookie experiences! 🍪

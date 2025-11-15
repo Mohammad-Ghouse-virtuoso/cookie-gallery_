@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const logger = require('../logger');
+const sentryService = require('../services/sentryService');
 
 function createWebhookRoutes({ stripeInstance, adminDb, paymentService }) {
   const router = express.Router();
@@ -64,6 +65,17 @@ function createWebhookRoutes({ stripeInstance, adminDb, paymentService }) {
         requestId: req.id,
         ip: req.ip 
       });
+      sentryService.captureException(new Error('stripe_missing_signature'), {
+        level: 'warning',
+        tags: {
+          category: 'payment',
+          webhook: 'stripe',
+        },
+        extra: {
+          requestId: req.id,
+          ip: req.ip,
+        },
+      });
       return res.status(400).json({ error: 'Missing stripe-signature header' });
     }
 
@@ -80,7 +92,18 @@ function createWebhookRoutes({ stripeInstance, adminDb, paymentService }) {
         requestId: req.id,
         signatureHeader: signature.substring(0, 20) + '...'
       });
-      return res.status(400).json({ error: `Webhook signature verification failed: ${err.message}` });
+      sentryService.captureException(err, {
+        tags: {
+          category: 'payment',
+          webhook: 'stripe',
+          reason: 'signature_mismatch',
+        },
+        extra: {
+          requestId: req.id,
+          signature: signature.substring(0, 16) + '...'
+        }
+      });
+      return res.status(400).json({ error: `Webhook signature verification failed` });
     }
 
     const eventId = event.id;
@@ -91,105 +114,135 @@ function createWebhookRoutes({ stripeInstance, adminDb, paymentService }) {
       return res.status(200).json({ received: true, message: 'Already processed' });
     }
 
-    await recordWebhookEvent(eventId, 'stripe', null, event, 'received');
+    const session = event?.data?.object || {};
+    const localOrderId = session.metadata?.localOrderId || session.client_reference_id || null;
+    const providerSessionId = session.id || null;
 
-    try {
-      if (!adminDb) {
-        await recordWebhookEvent(eventId, 'stripe', null, event, 'failed_no_db');
-        return res.status(503).json({ error: 'Database not configured' });
-      }
+    await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'received');
 
-      const sessionId = event?.data?.object?.id;
-      logger.info('Processing Stripe webhook', { 
-        eventType: event.type, 
-        sessionId,
-        eventId 
+    return sentryService.withScope({
+      tags: {
+        category: 'payment',
+        webhook: 'stripe',
+        eventId,
+        providerSessionId,
+        localOrderId,
+      },
+      extra: {
+        eventType: event.type,
+      },
+    }, async () => {
+      sentryService.addBreadcrumb({
+        category: 'payment.webhook',
+        message: `Stripe webhook received: ${event.type}`,
+        level: 'info',
+        data: {
+          eventId,
+          providerSessionId,
+          localOrderId,
+        },
       });
 
-      if (event.type === 'checkout.session.completed' || 
-          event.type === 'checkout.session.async_payment_succeeded') {
-        
-        const session = event.data.object;
-        const localOrderId = session.metadata?.localOrderId || session.client_reference_id;
-
-        if (!localOrderId) {
-          logger.warn('Stripe webhook missing localOrderId', { 
-            eventType: event.type, 
-            sessionId: session.id,
-            eventId 
-          });
-          await recordWebhookEvent(eventId, 'stripe', null, event, 'failed_no_order_id');
-          return res.status(200).json({ received: true, warning: 'Missing order ID' });
+      try {
+        if (!adminDb) {
+          await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'failed_no_db');
+          return res.status(503).json({ error: 'Database not configured' });
         }
 
-        const result = await paymentService.finalizeOrder(localOrderId, {
-          id: session.id,
-          payment_status: session.payment_status,
-          status: session.status,
-          amount_total: session.amount_total,
-          payment_intent: session.payment_intent,
-          provider: 'stripe'
+        logger.info('Processing Stripe webhook', {
+          eventType: event.type,
+          sessionId: providerSessionId,
+          eventId,
         });
 
-        if (!result.success) {
-          logger.error('Order finalization failed', { 
-            localOrderId, 
-            error: result.error,
-            eventId 
+        if (event.type === 'checkout.session.completed' ||
+            event.type === 'checkout.session.async_payment_succeeded') {
+          if (!localOrderId) {
+            logger.warn('Stripe webhook missing localOrderId', {
+              eventType: event.type,
+              sessionId: providerSessionId,
+              eventId,
+            });
+            await recordWebhookEvent(eventId, 'stripe', null, event, 'failed_no_order_id');
+            return res.status(200).json({ received: true, warning: 'Missing order ID' });
+          }
+
+          const result = await paymentService.finalizeOrder(localOrderId, {
+            id: providerSessionId,
+            payment_status: session.payment_status,
+            status: session.status,
+            amount_total: session.amount_total,
+            payment_intent: session.payment_intent,
+            provider: 'stripe',
           });
-          await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'failed_reconcile');
-          
-          if (global.Sentry) {
-            global.Sentry.captureException(new Error('Order reconciliation failed'), {
-              extra: { localOrderId, error: result.error, eventId }
+
+          if (!result.success) {
+            logger.error('Order finalization failed', {
+              localOrderId,
+              error: result.error,
+              eventId,
+            });
+            await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'failed_reconcile');
+            sentryService.captureException(new Error('order_reconciliation_failed'), {
+              tags: {
+                category: 'payment',
+                webhook: 'stripe',
+                eventId,
+                localOrderId,
+              },
+              extra: {
+                error: result.error,
+              },
+            });
+            return res.status(200).json({
+              received: true,
+              warning: 'Reconciliation failed',
+              error: result.error,
             });
           }
-          
-          return res.status(200).json({ 
-            received: true, 
-            warning: 'Reconciliation failed',
-            error: result.error 
-          });
-        }
-
-        await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'processed');
-        logger.info('Stripe webhook processed successfully', { localOrderId, eventId });
-      }
-      else if (event.type === 'checkout.session.expired' || 
-               event.type === 'checkout.session.async_payment_failed') {
-        
-        const session = event.data.object;
-        const localOrderId = session.metadata?.localOrderId || session.client_reference_id;
-
-        if (localOrderId) {
-          const ordersRef = adminDb.collection('orders_v2');
-          await ordersRef.doc(localOrderId).set({
-            status: 'failed',
-            providerInfo: {
-              id: session.id,
-              payment_status: session.payment_status,
-              status: session.status,
-              provider: 'stripe'
-            },
-            lastKnownError: `Session ${event.type}`,
-            updatedAt: new Date()
-          }, { merge: true });
 
           await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'processed');
-          logger.info('Stripe webhook marked order as failed', { localOrderId, eventId });
-        }
-      }
+          logger.info('Stripe webhook processed successfully', { localOrderId, eventId });
+        } else if (event.type === 'checkout.session.expired' ||
+                   event.type === 'checkout.session.async_payment_failed') {
+          if (localOrderId) {
+            const ordersRef = adminDb.collection('orders_v2');
+            await ordersRef.doc(localOrderId).set({
+              status: 'failed',
+              providerInfo: {
+                id: providerSessionId,
+                payment_status: session.payment_status,
+                status: session.status,
+                provider: 'stripe',
+              },
+              lastKnownError: `Session ${event.type}`,
+              updatedAt: new Date(),
+            }, { merge: true });
 
-      res.status(200).json({ received: true });
-    } catch (error) {
-      logger.error('Error processing Stripe webhook', { 
-        error: error.message,
-        eventId,
-        stack: error.stack 
-      });
-      await recordWebhookEvent(eventId, 'stripe', null, event, 'failed_processing');
-      res.status(500).json({ error: 'Webhook processing error' });
-    }
+            await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'processed');
+            logger.info('Stripe webhook marked order as failed', { localOrderId, eventId });
+          }
+        }
+
+        return res.status(200).json({ received: true });
+      } catch (error) {
+        logger.error('Error processing Stripe webhook', {
+          error: error.message,
+          eventId,
+          stack: error.stack,
+        });
+        await recordWebhookEvent(eventId, 'stripe', localOrderId, event, 'failed_processing');
+        sentryService.captureException(error, {
+          tags: {
+            category: 'payment',
+            webhook: 'stripe',
+            eventId,
+            localOrderId,
+          },
+        });
+        return res.status(500).json({ error: 'Webhook processing error' });
+      }
+    });
   });
 
   router.post('/razorpay', async (req, res) => {
@@ -265,12 +318,17 @@ function createWebhookRoutes({ stripeInstance, adminDb, paymentService }) {
 
         if (!result.success) {
           await recordWebhookEvent(eventId, 'razorpay', localOrderId, event, 'failed_reconcile');
-          
-          if (global.Sentry) {
-            global.Sentry.captureException(new Error('Razorpay order reconciliation failed'), {
-              extra: { localOrderId, error: result.error, eventId }
-            });
-          }
+          sentryService.captureException(new Error('razorpay_order_reconciliation_failed'), {
+            tags: {
+              category: 'payment',
+              webhook: 'razorpay',
+              eventId,
+              localOrderId,
+            },
+            extra: {
+              error: result.error,
+            },
+          });
         } else {
           await recordWebhookEvent(eventId, 'razorpay', localOrderId, event, 'processed');
         }

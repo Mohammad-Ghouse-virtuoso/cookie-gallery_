@@ -1,4 +1,5 @@
 const logger = require('../logger');
+const sentryService = require('./sentryService');
 
 class PaymentService {
   constructor(adminDb) {
@@ -22,62 +23,108 @@ class PaymentService {
       }
 
       const order = doc.data();
-      
-      const orderAmount = Math.round(Number(order.totalAmount) * 100);
       const providerAmount = providerData.amount_total || providerData.amount || 0;
-      
-      if (orderAmount !== providerAmount) {
-        logger.error('Amount mismatch during reconciliation', {
+
+      const scopePayload = {
+        tags: {
+          category: 'payment',
           localOrderId,
-          orderAmount,
-          providerAmount,
-          difference: Math.abs(orderAmount - providerAmount)
-        });
-        
-        await docRef.set({
-          status: 'failed_reconcile',
-          reconciliationError: {
-            message: 'Amount mismatch',
-            orderAmount,
-            providerAmount,
-            timestamp: new Date().toISOString()
-          },
-          updatedAt: new Date()
-        }, { merge: true });
-
-        return { 
-          success: false, 
-          error: 'Amount mismatch',
-          details: { orderAmount, providerAmount }
-        };
-      }
-
-      const updateData = {
-        status: 'completed',
-        paidAt: new Date(),
-        providerInfo: {
-          id: providerData.id,
-          payment_status: providerData.payment_status,
-          status: providerData.status,
-          provider: providerData.provider || 'stripe'
+          providerSessionId: providerData.id,
+          provider: providerData.provider || 'stripe',
         },
-        paymentIntentId: providerData.payment_intent || null,
-        updatedAt: new Date()
+        extra: {
+          orderStatus: order.status,
+          providerStatus: providerData.status,
+          paymentStatus: providerData.payment_status,
+        },
+        user: order.userUid || order.userEmail ? {
+          id: order.userUid || undefined,
+          email: order.userEmail || undefined,
+        } : null,
       };
 
-      await docRef.set(updateData, { merge: true });
+      return await sentryService.withScope(scopePayload, async () => {
+        const orderAmount = Math.round(Number(order.totalAmount) * 100);
 
-      logger.info('Order finalized successfully', { 
-        localOrderId, 
-        provider: providerData.provider,
-        amount: providerAmount 
+        sentryService.addBreadcrumb({
+          category: 'payment.reconcile',
+          message: 'Finalizing order after provider confirmation',
+          level: 'info',
+          data: {
+            localOrderId,
+            providerAmount,
+            orderAmount,
+          },
+        });
+
+        if (orderAmount !== providerAmount) {
+          logger.error('Amount mismatch during reconciliation', {
+            localOrderId,
+            orderAmount,
+            providerAmount,
+            difference: Math.abs(orderAmount - providerAmount)
+          });
+
+          await docRef.set({
+            status: 'failed_reconcile',
+            reconciliationError: {
+              message: 'Amount mismatch',
+              orderAmount,
+              providerAmount,
+              timestamp: new Date().toISOString()
+            },
+            updatedAt: new Date()
+          }, { merge: true });
+
+          sentryService.captureException(new Error('payment_amount_mismatch'), {
+            tags: scopePayload.tags,
+            extra: {
+              orderAmount,
+              providerAmount,
+            },
+          });
+
+          return { 
+            success: false, 
+            error: 'Amount mismatch',
+            details: { orderAmount, providerAmount }
+          };
+        }
+
+        const updateData = {
+          status: 'completed',
+          paidAt: new Date(),
+          providerInfo: {
+            id: providerData.id,
+            payment_status: providerData.payment_status,
+            status: providerData.status,
+            provider: providerData.provider || 'stripe'
+          },
+          paymentIntentId: providerData.payment_intent || null,
+          updatedAt: new Date()
+        };
+
+        await docRef.set(updateData, { merge: true });
+
+        logger.info('Order finalized successfully', { 
+          localOrderId, 
+          provider: providerData.provider,
+          amount: providerAmount 
+        });
+
+        this.emitOrderCompletedEvent(localOrderId, { ...order, ...updateData });
+
+        return { success: true, order: { ...order, ...updateData } };
       });
-
-      this.emitOrderCompletedEvent(localOrderId, { ...order, ...updateData });
-
-      return { success: true, order: { ...order, ...updateData } };
     } catch (error) {
       logger.error('Error finalizing order', { localOrderId, error: error.message });
+      sentryService.captureException(error, {
+        tags: {
+          category: 'payment',
+          localOrderId,
+          providerSessionId: providerData?.id,
+        },
+      });
       return { success: false, error: error.message };
     }
   }

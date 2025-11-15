@@ -28,4 +28,37 @@ if (process.env.NODE_ENV !== 'production') {
   }));
 }
 
+function scrubSensitive(meta = {}) {
+  const clone = { ...meta };
+  ['cardNumber', 'card_number', 'token', 'authHeader', 'authorization'].forEach(key => {
+    if (clone[key]) {
+      clone[key] = '***';
+    }
+  });
+  return clone;
+}
+
+logger.captureException = (error, context = {}) => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  const safeContext = scrubSensitive(context);
+  logger.error(err.message, { stack: err.stack, ...safeContext });
+  if (global.Sentry) {
+    global.Sentry.withScope(scope => {
+      Object.entries(safeContext?.tags ?? {}).forEach(([key, value]) => scope.setTag(key, String(value)));
+      Object.entries(safeContext?.extra ?? safeContext).forEach(([key, value]) => {
+        if (key === 'tags') return;
+        if (key === 'user') return;
+        if (value !== undefined && value !== null) {
+          scope.setExtra(key, value);
+        }
+      });
+      if (safeContext?.user) {
+        scope.setUser(safeContext.user);
+      }
+      scope.setLevel('error');
+      global.Sentry.captureException(err);
+    });
+  }
+};
+
 module.exports = logger;

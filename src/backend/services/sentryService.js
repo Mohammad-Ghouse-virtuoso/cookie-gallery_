@@ -6,7 +6,7 @@ const logger = require('../logger');
  * Initialize Sentry for backend error tracking
  */
 function initSentry(app) {
-  const SENTRY_DSN = process.env.SENTRY_DSN;
+  const SENTRY_DSN = process.env.SENTRY_DSN_BACKEND || process.env.SENTRY_DSN;
   const NODE_ENV = process.env.NODE_ENV || 'development';
   
   if (!SENTRY_DSN) {
@@ -24,10 +24,10 @@ function initSentry(app) {
     ],
     
     // Performance Monitoring
-    tracesSampleRate: NODE_ENV === 'production' ? 0.1 : 1.0,
+    tracesSampleRate: 0.1,
     
     // Profiling
-    profilesSampleRate: NODE_ENV === 'production' ? 0.1 : 1.0,
+    profilesSampleRate: NODE_ENV === 'production' ? 0.1 : 0.5,
     
     // Filter sensitive data
     beforeSend(event, hint) {
@@ -43,6 +43,7 @@ function initSentry(app) {
         if (event.request.headers) {
           delete event.request.headers['authorization'];
           delete event.request.headers['cookie'];
+          delete event.request.headers['x-api-key'];
         }
         
         // Remove sensitive query params
@@ -56,7 +57,7 @@ function initSentry(app) {
 
       // Scrub sensitive extra data
       if (event.extra) {
-        ['password', 'token', 'secret', 'apiKey', 'private_key'].forEach(key => {
+        ['password', 'token', 'secret', 'apiKey', 'private_key', 'card_number', 'card_last4'].forEach(key => {
           if (event.extra[key]) {
             event.extra[key] = '***';
           }
@@ -108,6 +109,32 @@ function sentryTracingHandler() {
 }
 
 /**
+ * Create a scoped capture with tags, extras and user context.
+ */
+function withScope({ tags = {}, extra = {}, user = null } = {}, callback = () => {}) {
+  if (!global.Sentry) {
+    return callback();
+  }
+
+  return global.Sentry.withScope(scope => {
+    Object.entries(tags).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        scope.setTag(key, String(value));
+      }
+    });
+    Object.entries(extra).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        scope.setExtra(key, value);
+      }
+    });
+    if (user) {
+      scope.setUser(user);
+    }
+    return callback(scope);
+  });
+}
+
+/**
  * Capture exception with context
  */
 function captureException(error, context = {}) {
@@ -115,9 +142,12 @@ function captureException(error, context = {}) {
     logger.error('Exception (Sentry not initialized):', { error, context });
     return;
   }
-  
-  Sentry.captureException(error, {
-    extra: context,
+
+  const { tags, extra, level, user } = context;
+  withScope({ tags, extra, user }, () => {
+    Sentry.captureException(error instanceof Error ? error : new Error(String(error)), {
+      level: level || 'error',
+    });
   });
 }
 
@@ -162,6 +192,7 @@ module.exports = {
   sentryErrorHandler,
   sentryRequestHandler,
   sentryTracingHandler,
+  withScope,
   captureException,
   captureMessage,
   setUser,
