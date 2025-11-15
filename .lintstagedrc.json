@@ -1,0 +1,9 @@
+{
+  "*.{js,jsx,ts,tsx}": [
+    "npx eslint --fix",
+    "npx vitest related --run --passWithNoTests"
+  ],
+  "*.{json,md}": [
+    "npx prettier --write"
+  ]
+}

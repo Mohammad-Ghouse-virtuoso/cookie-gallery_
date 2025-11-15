@@ -8,7 +8,6 @@ const crypto = require('crypto');
 const path = require('path');
 const admin = require('firebase-admin');
 const rateLimit = require('express-rate-limit');
-const logger = require('./logger');
 
 // Load env (supports multiline private key with \n)
 // 1) Root .env
@@ -16,7 +15,20 @@ require('dotenv').config();
 // 2) Backend-local .env (src/backend/.env) as fallback without overriding existing vars
 require('dotenv').config({ path: path.resolve(__dirname, '.env'), override: false });
 
+const logger = require('./logger');
+const PaymentService = require('./services/paymentService');
+const createWebhookRoutes = require('./routes/webhooks');
+const createOrderRoutes = require('./routes/orders');
+const sentryService = require('./services/sentryService');
+
 const app = express();
+
+// Initialize Sentry (must be before other middleware)
+const Sentry = sentryService.initSentry(app);
+if (Sentry) {
+  app.use(sentryService.sentryRequestHandler());
+  app.use(sentryService.sentryTracingHandler());
+}
 const STRIPE_WEBHOOK_PATH = '/api/payment-webhook';
 app.use(express.json({
   verify: (req, res, buffer) => {
@@ -144,6 +156,13 @@ if (STRIPE_SECRET_KEY) {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
 const ORDERS_COLLECTION = 'orders_v2';
+
+// Initialize PaymentService
+let paymentService = null;
+if (adminDb) {
+  paymentService = new PaymentService(adminDb);
+  logger.info('PaymentService initialized');
+}
 
 const toMinorUnits = (amount) => Math.max(0, Math.round(Number(amount || 0) * 100));
 
@@ -924,6 +943,27 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
   }
 });
 
+// Mount new webhook routes with signature verification and idempotency
+if (paymentService) {
+  const webhookRoutes = createWebhookRoutes({
+    stripeInstance,
+    adminDb,
+    paymentService
+  });
+  app.use('/api/webhooks', webhookRoutes);
+  logger.info('Webhook routes mounted at /api/webhooks');
+  
+  // Mount order management routes
+  const orderRoutes = createOrderRoutes({
+    adminDb,
+    paymentService,
+    stripeInstance
+  });
+  app.use('/api', orderRoutes);
+  logger.info('Order routes mounted');
+}
+
+// Legacy webhook endpoint (kept for backwards compatibility)
 app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
   if (!stripeInstance || !STRIPE_WEBHOOK_SECRET) {
     return res.status(200).json({ received: true, message: 'Webhook received but Stripe not configured.' });
@@ -994,7 +1034,22 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
   }
 });
 
+// Sentry error handler (must be before other error handlers)
+if (Sentry) {
+  app.use(sentryService.sentryErrorHandler());
+}
+
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', { error: err.message, stack: err.stack });
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
+  });
+});
+
 // --- Start Server ---
 app.listen(PORT, () => {
   logger.info(`Backend server running on http://localhost:${PORT}`);
+  logger.info(`Sentry: ${Sentry ? 'Enabled' : 'Disabled'}`);
 });
