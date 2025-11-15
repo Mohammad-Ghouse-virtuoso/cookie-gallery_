@@ -1,10 +1,7 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🧪 Running full test suite before push..."
-npm run test -- --run
+npx vitest --run
 
 echo "🔍 Running linter..."
-npm run lint
+npx eslint .
 
 echo "✅ All checks passed. Pushing..."
