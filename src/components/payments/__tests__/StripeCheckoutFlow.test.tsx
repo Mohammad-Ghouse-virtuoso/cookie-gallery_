@@ -69,11 +69,21 @@ describe('StripeCheckoutFlow', () => {
       providerSessionId: 'sess_123',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ status: 'pending' }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const cartDetails = {
+      classic: {
+        type: 'cookie' as const,
+        name: 'Classic Crunch',
+        price: 499,
+        image: '/classic.jpg',
+        productId: 'classic',
+      },
+    };
 
     render(
       <MemoryRouter>
         <StripeCheckoutFlow
           cart={cart}
+          cartDetails={cartDetails}
           totalAmount={totalAmount}
           user={user}
           shippingAddress={{ fullName: 'Ada', line1: '42 Baker St', city: 'Bengaluru', postalCode: '560001', country: 'India', phone: '+91000000000' } as any}
@@ -90,9 +100,14 @@ describe('StripeCheckoutFlow', () => {
       expect(window.location.assign).toHaveBeenCalledWith('https://stripe.test/session/abc');
     });
 
+    const [, firstCallOptions] = fetchMock.mock.calls[0];
+    const payload = JSON.parse((firstCallOptions?.body as string) ?? '{}');
+    expect(payload.cartDetails).toEqual(cartDetails);
+
     const pending = loadPendingOrder();
     expect(pending?.localOrderId).toBe('order-abc');
     expect(pending?.status).toBe('pending');
+    expect(pending?.cartDetails).toEqual(cartDetails);
   });
 
   test('shows offline recovery message and does not call create order when offline', async () => {
@@ -125,7 +140,7 @@ describe('StripeCheckoutFlow', () => {
       providerSessionId: 'sess_pending',
       createdAt: Date.now(),
       cart,
-      returnPath: '/checkout',
+      returnPath: '/payment-status',
       status: 'pending',
     });
 
@@ -139,7 +154,7 @@ describe('StripeCheckoutFlow', () => {
           cart={cart}
           totalAmount={totalAmount}
           user={user}
-          returnPath="/checkout"
+          returnPath="/payment-status"
           successPath="/order-success"
           initialOrderId="order-pending"
         />
@@ -150,7 +165,7 @@ describe('StripeCheckoutFlow', () => {
       expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/api/order-status'), expect.any(Object));
     });
 
-    await userEvent.click(screen.getByRole('button', { name: /refresh status/i }));
+    await userEvent.click(screen.getByRole('button', { name: /check again now/i }));
 
     await waitFor(() => {
       expect(navigateSpy).toHaveBeenCalledWith('/order-success');

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import GiftForm from '@/components/gifting/GiftForm';
 import { getGoldenSeasonBox } from '@/data/goldenSeasonBoxes';
 import { useGiftExperience } from '@/context/GiftExperienceContext';
+import { getLastGiftId, setLastGiftId } from '@/lib/giftFormStorage';
 
 export default function GiftExperiencePage() {
   const { boxId } = useParams<{ boxId: string }>();
   const navigate = useNavigate();
   const { closeModal } = useGiftExperience();
+  const [formEpoch, setFormEpoch] = useState(0);
 
   useEffect(() => {
     // Ensure modal state is cleared when navigating directly to the page.
@@ -15,6 +17,17 @@ export default function GiftExperiencePage() {
   }, [closeModal]);
 
   const box = useMemo(() => getGoldenSeasonBox(boxId), [boxId]);
+
+  useEffect(() => {
+    if (!boxId) {
+      return;
+    }
+    const lastGiftId = getLastGiftId();
+    if (lastGiftId && lastGiftId !== boxId) {
+      setFormEpoch(counter => counter + 1);
+    }
+    setLastGiftId(boxId);
+  }, [boxId]);
 
   const handleExit = useCallback(() => {
     if (window.history.length > 2) {
@@ -67,10 +80,12 @@ export default function GiftExperiencePage() {
   <section className="rounded-[14px] border border-[rgba(226,185,127,0.24)] bg-[#FFF6F0] p-6 shadow-[0_2px_8px_rgba(0,0,0,0.05)] md:p-10">
           {box ? (
             <GiftForm
+              key={`${box?.key ?? 'gift'}:${formEpoch}`}
               box={box}
               mode="page"
               onRequestClose={handleExit}
               headingId="gift-page-heading"
+              giftId={box?.key ?? null}
             />
           ) : (
             <div className="flex flex-col items-center gap-4 text-center">

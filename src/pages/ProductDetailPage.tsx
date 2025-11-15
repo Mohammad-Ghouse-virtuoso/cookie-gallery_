@@ -5,6 +5,7 @@ import { cookies, type CookieData } from '@/data/cookies';
 import { formatPrice } from '@/utils/formatPrice';
 import { useCart } from '@/context/CartContext';
 import { AlertTriangle, Info, Leaf, ShieldCheck, Truck } from 'lucide-react';
+import type { CartStateWithMeta } from '@/types/cart';
 
 const highlightPills = [
   'Premium Australian oats',
@@ -116,14 +117,17 @@ export default function ProductDetailPage() {
   const updateQuantity = (nextQty: number) => {
     const safeQty = Math.max(0, Math.min(maxQuantity, nextQty));
     setCart(prev => {
-      const next = { ...(prev as any) } as Record<string, number> & { _meta?: Record<string, { name?: string; image?: string; price?: number }> };
+      const next = { ...(prev as CartStateWithMeta) } as CartStateWithMeta;
+      next._meta = next._meta ? { ...next._meta } : undefined;
       if (safeQty > 0) {
         next[cookie.id] = safeQty;
         const meta = (next._meta ??= {});
         meta[cookie.id] = {
+          type: 'cookie',
           name: cookie.name,
           image: cookie.src,
           price: cookie.price,
+          productId: cookie.id,
         };
       } else {
         delete next[cookie.id];
@@ -131,7 +135,7 @@ export default function ProductDetailPage() {
           delete next._meta[cookie.id];
         }
       }
-      return next as any;
+      return next as unknown as typeof prev;
     });
   };
 

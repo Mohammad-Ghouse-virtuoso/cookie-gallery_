@@ -1,6 +1,6 @@
 // src/components/NavBar.tsx
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaCookieBite } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -10,10 +10,13 @@ import AnimatedSignOutButton from './AnimatedSignOutButton';
 import AnimatedCartButton from './AnimatedCartButton';
 import { cookies as allCookies } from '@/data/cookies';
 import styled from 'styled-components';
+import { checkoutPageEnabled } from '@/config/features';
+import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
 
 export default function NavBar() {
   const { user, loading, signOutUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { cart, setCart } = useCart();
   const [showCart, setShowCart] = useState(false);
   const cookieLookup = useMemo(() => {
@@ -23,25 +26,52 @@ export default function NavBar() {
   }, []);
 
   const cartItems = useMemo<CartPreviewItem[]>(() => {
-    const meta = ((cart as any)._meta ?? {}) as Record<string, Partial<CartPreviewItem>>;
+    const state = cart as CartStateWithMeta;
+    const meta = state._meta ?? {};
 
-    return Object.entries(cart as Record<string, number>)
-      .filter(([key, qty]) => key !== '_meta' && typeof qty === 'number' && qty > 0)
-      .map(([id, qty]) => {
-        const cookieInfo = cookieLookup.get(id);
-        const fallback = meta[id] ?? {};
-        return {
-          id,
-          name: cookieInfo?.name ?? (fallback.name ?? id),
-          image: cookieInfo?.src ?? (fallback.image ?? ''),
-          price: cookieInfo?.price ?? (fallback.price ?? 0),
-          qty,
-        } satisfies CartPreviewItem;
-      });
+    const entries: Array<{ id: string; qty: number }> = [];
+    Object.entries(state).forEach(([id, value]) => {
+      if (id === '_meta') {
+        return;
+      }
+      if (typeof value === 'number' && value > 0) {
+        entries.push({ id, qty: value });
+      }
+    });
+
+    return entries.map(({ id, qty }) => {
+      const metaEntry = meta[id] as CartLineItemDetail | undefined;
+      const cookieInfo = cookieLookup.get(id);
+      const fallbackDetail: CartLineItemDetail = metaEntry ?? {
+        type: 'cookie',
+        name: cookieInfo?.name ?? id,
+        price: cookieInfo?.price ?? 0,
+        image: cookieInfo?.src ?? '',
+        productId: cookieInfo?.id,
+      };
+      const resolvedDetail: CartLineItemDetail = {
+        ...fallbackDetail,
+        name: fallbackDetail.name || cookieInfo?.name || id,
+        price: typeof fallbackDetail.price === 'number' && fallbackDetail.price > 0
+          ? fallbackDetail.price
+          : cookieInfo?.price ?? 0,
+        image: fallbackDetail.image ?? cookieInfo?.src ?? '',
+        productId: fallbackDetail.productId ?? cookieInfo?.id,
+      };
+
+      return {
+        id,
+        name: resolvedDetail.name,
+        image: resolvedDetail.image ?? '',
+        price: resolvedDetail.price,
+        qty,
+        detail: resolvedDetail,
+      } satisfies CartPreviewItem;
+    });
   }, [cart, cookieLookup]);
 
   const cartTotals = useMemo<CartTotals>(() => {
-    const subtotal = cartItems.reduce((total, item) => total + item.price * item.qty, 0);
+    const subtotal = cartItems.reduce((total, item) => total + (item.detail?.price ?? item.price) * item.qty, 0);
     return { subtotal, grandTotal: subtotal };
   }, [cartItems]);
 
@@ -54,6 +84,23 @@ export default function NavBar() {
     } catch (error) {
       console.error("Error signing out from NavBar:", error);
     }
+  };
+
+  const buildCheckoutUrl = (anchorHash?: string) => {
+    if (!checkoutPageEnabled) {
+      return hasCheckoutAddress() ? '/checkout' : '/checkout/address';
+    }
+
+    const params = new URLSearchParams();
+    const giftMatch = location.pathname.match(/^\/gift\/([^/]+)/);
+    if (giftMatch) {
+      params.set('from', 'gift');
+      params.set('giftId', giftMatch[1]);
+    }
+
+    const query = params.toString();
+    const base = query ? `/checkout?${query}` : '/checkout';
+    return anchorHash ? `${base}${anchorHash}` : base;
   };
 
   return (
@@ -116,16 +163,20 @@ export default function NavBar() {
           items={cartItems}
           totals={cartTotals}
           onUpdateQty={(id, qty) => setCart(prev => {
-            const next = { ...(prev as any) } as Record<string, number> & { _meta?: Record<string, Partial<CartPreviewItem>> };
+            const next = { ...(prev as CartStateWithMeta) } as CartStateWithMeta;
+            next._meta = next._meta ? { ...next._meta } : undefined;
+
             if (qty > 0) {
               next[id] = qty;
               const cookieInfo = cookieLookup.get(id);
               const meta = (next._meta ??= {});
               if (cookieInfo) {
                 meta[id] = {
+                  type: 'cookie',
                   name: cookieInfo.name,
                   image: cookieInfo.src,
                   price: cookieInfo.price,
+                  productId: cookieInfo.id,
                 };
               }
             } else {
@@ -134,27 +185,24 @@ export default function NavBar() {
                 delete next._meta[id];
               }
             }
-            return next as any;
+            return next as unknown as typeof prev;
           })}
           onRemove={(id) => setCart(prev => {
-            const next = { ...(prev as any) } as Record<string, number> & { _meta?: Record<string, Partial<CartPreviewItem>> };
+            const next = { ...(prev as CartStateWithMeta) } as CartStateWithMeta;
+            next._meta = next._meta ? { ...next._meta } : undefined;
             delete next[id];
             if (next._meta) {
               delete next._meta[id];
             }
-            return next as any;
+            return next as unknown as typeof prev;
           })}
           onCheckout={() => {
             setShowCart(false);
-            if (hasCheckoutAddress()) {
-              navigate('/checkout');
-            } else {
-              navigate('/checkout/address');
-            }
+            navigate(buildCheckoutUrl());
           }}
           onManageAddress={() => {
             setShowCart(false);
-            navigate('/checkout/address');
+            navigate(buildCheckoutUrl('#address'));
           }}
           onExplore={() => { setShowCart(false); navigate('/cookies'); }}
         />

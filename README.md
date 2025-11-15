@@ -104,12 +104,6 @@ PORT=5000
 
 #### 3. **Firebase Service Account Setup:**
 - Download your Firebase service account JSON file
-- Place it in \`src/backend/\` as \`firebase-admin-sdk.json\`
-- Ensure it's added to \`.gitignore\` for security
-
-### Running the Application
-
-#### Development Mode:
 
 1. **Start the Backend Server:**
    \`\`\`bash
@@ -139,6 +133,15 @@ npm run preview
 ## 📁 Project Structure
 
 cookie-gallery/
+
+### Feature Flags
+
+- `checkoutPageEnabled` — controls the lightweight cart modal plus dedicated checkout page flow. Enabled by default. Set `VITE_FEATURE_CHECKOUT_PAGE=false` in your frontend `.env` and restart the dev server to roll back to the legacy checkout modal experience.
+
+Suggested QA when toggling the flag:
+- Confirm the cart modal fits the viewport at 320 px, 768 px, and 1280 px with item scrolling confined inside the modal.
+- Use **Proceed to Checkout** to verify navigation to `/checkout` (or the legacy modal sequence when disabled).
+- Validate address capture, offline retry messaging, and post-payment verification before approving a release.
 ├── public/
 ├── src/
 │   ├── assets/

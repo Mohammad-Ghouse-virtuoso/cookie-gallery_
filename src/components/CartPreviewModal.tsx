@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { formatPrice } from '@/utils/formatPrice';
 import { loadCheckoutAddress } from '@/lib/checkoutAddressStorage';
+import { useAuth } from '@/context/AuthContext';
+import type { CartLineItemDetail } from '@/types/cart';
 
 export type CartPreviewItem = {
   id: string;
@@ -9,12 +11,12 @@ export type CartPreviewItem = {
   price: number;
   qty: number;
   image: string;
+  detail: CartLineItemDetail;
 };
 
 export type CartTotals = {
   subtotal: number;
   grandTotal: number;
-  tax?: number;
   shipping?: number;
 };
 
@@ -31,7 +33,7 @@ type CartPreviewModalProps = {
 };
 
 const EASING = 'cubic-bezier(0.45, 0, 0.55, 1)';
-const MAX_ITEM_QUANTITY = 3;
+const MAX_ITEM_QUANTITY = 10;
 const FALLBACK_GRADIENTS: Array<{ base: string; accent: string }> = [
   { base: '#FDE5CF', accent: '#F9D4B5' },
   { base: '#FCDED6', accent: '#F7C3B4' },
@@ -48,11 +50,47 @@ const resolveTint = (id: string) => {
   return FALLBACK_GRADIENTS[hash % FALLBACK_GRADIENTS.length];
 };
 
+const ClockIcon = () => (
+  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.6" />
+    <path d="M12 6.8v5.1l3.6 1.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
+
+const LocationPinIcon = () => (
+  <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M12 3.4c-3.26 0-5.9 2.64-5.9 5.9 0 4.33 3.8 8.36 5.35 9.84.31.3.79.3 1.1 0 1.55-1.48 5.35-5.51 5.35-9.84 0-3.26-2.64-5.9-5.9-5.9Zm0 8.5a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2Z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export default function CartPreviewModal(props: CartPreviewModalProps) {
   const { isOpen, onClose, items, totals, onUpdateQty, onRemove, onCheckout, onExplore, onManageAddress } = props;
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
-  const [checkoutAddress, setCheckoutAddress] = useState(() => loadCheckoutAddress());
+  const { user } = useAuth();
+  const ownerKey = user?.email?.toLowerCase() ?? null;
+  const [checkoutAddress, setCheckoutAddress] = useState(() => loadCheckoutAddress(ownerKey ?? undefined));
+  const addressSummary = useMemo(() => {
+    if (!checkoutAddress) {
+      return null;
+    }
+    const parts = [
+      checkoutAddress.line1,
+      checkoutAddress.line2,
+      checkoutAddress.city,
+      checkoutAddress.state,
+      checkoutAddress.postalCode,
+    ]
+      .map(value => (typeof value === 'string' ? value.trim() : ''))
+      .filter((value): value is string => Boolean(value));
+    if (!parts.length) {
+      return null;
+    }
+    return parts.join(', ');
+  }, [checkoutAddress]);
 
   // Lock body scroll when the mini-cart is open
   useEffect(() => {
@@ -67,14 +105,14 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
   useEffect(() => {
     if (!isOpen) return;
     const syncAddress = () => {
-      setCheckoutAddress(loadCheckoutAddress());
+      setCheckoutAddress(loadCheckoutAddress(ownerKey ?? undefined));
     };
     syncAddress();
     window.addEventListener('storage', syncAddress);
     return () => {
       window.removeEventListener('storage', syncAddress);
     };
-  }, [isOpen]);
+  }, [isOpen, ownerKey]);
 
   // Close on ESC and trap focus
   useEffect(() => {
@@ -122,6 +160,14 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
   }, [isOpen]);
 
   const itemCount = useMemo(() => items.reduce((total, item) => total + item.qty, 0), [items]);
+  const shippingProvided = typeof totals.shipping === 'number' ? Math.max(0, totals.shipping) : null;
+  const derivedShipping = Math.max(0, (totals.grandTotal ?? totals.subtotal) - totals.subtotal);
+  const shippingAmount = shippingProvided ?? derivedShipping;
+  const hasShipping = shippingAmount > 0;
+  const payableTotal = totals.grandTotal ?? totals.subtotal + shippingAmount;
+  const shipmentLabel = `Shipment of ${itemCount === 1 ? '1 item' : `${itemCount} items`}`;
+  const checkoutDisabled = items.length === 0;
+  const manageAddressLabel = checkoutAddress ? 'Edit' : 'Add';
   if (!isOpen) return null;
 
   const handleOverlayMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -156,7 +202,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
   return createPortal(
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-[rgba(31,19,8,0.38)] backdrop-blur-sm px-4 py-6 sm:items-start sm:justify-end"
+      className="fixed inset-0 z-[100] flex justify-end bg-[rgba(31,19,8,0.38)] backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="cart-modal-title"
@@ -164,166 +210,176 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-md rounded-[24px] bg-[#FFF9F4] shadow-[0_18px_48px_rgba(88,62,42,0.22)] border border-[#F2E5D9]/60"
+        className="flex h-full w-full max-w-[460px] min-w-[min(94vw,340px)] flex-col border-l border-[rgba(226,185,127,0.4)] bg-[#FFF9F4] shadow-[-18px_0_32px_rgba(59,43,26,0.18)]"
         style={{
-          padding: '28px',
           animation: `cartModalIn 240ms ${EASING}`,
+          maxHeight: '100vh',
         }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-3 border-b border-[rgba(226,185,127,0.25)] px-5 py-4">
           <h3
             id="cart-modal-title"
-            className="font-['Playfair_Display'] text-2xl font-semibold text-[#3B2B1A]"
+            className="font-['Playfair_Display'] text-xl font-semibold text-[#3B2B1A]"
           >
-            Your Cart <span className="text-sm font-medium text-[#7C6F66]">({itemCount})</span>
+            Cart <span className="text-sm font-medium text-[#7C6F66]">({itemCount})</span>
           </h3>
           <button
             type="button"
             data-autofocus
             onClick={onClose}
-            className="text-[#8B7A68] transition-colors duration-150 ease-out hover:text-[#3B2B1A] focus-visible:outline-none"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-white text-lg text-[#7C6F66] transition-colors duration-150 hover:text-[#3B2B1A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]/40"
             aria-label="Close cart preview"
           >
             ×
           </button>
         </div>
+        {/* Items */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-4 text-[#4B4035]">
+          {hasItems ? (
+            <div className="space-y-3.5">
+              <div className="rounded-[18px] border border-[rgba(226,185,127,0.22)] bg-white px-4 py-3 shadow-[0_12px_24px_rgba(59,43,26,0.08)]">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E8F7EC] text-[#0DB04B]">
+                    <ClockIcon />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#2F2A1E]">Quick delivery window</p>
+                    <p className="text-xs text-[#6B5E57]">{shipmentLabel}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-[#0DB04B]">
+                  <span className="inline-flex rounded-full bg-[#DFF7E9] px-3 py-1 text-[11px] tracking-wide">
+                    {hasShipping ? `Delivery fee ${formatPrice(shippingAmount)}` : 'Free doorstep delivery'}
+                  </span>
+                </div>
+              </div>
 
-        {/* Body */}
-        <div className="mt-6 max-h-[55vh] space-y-5 overflow-y-auto pr-1 text-[#4B4035]">
-          {!hasItems ? (
-            <div className="flex flex-col items-center gap-4 rounded-3xl bg-[#FCEFD5] px-8 py-12 text-center text-[#4B4035] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-              <p className="text-base font-semibold text-[#3B2B1A]">Your cart is feeling light.</p>
+              <ul className="space-y-3" aria-live="polite">
+                {items.map(item => {
+                  const resolvedPrice = Number.isFinite(item.detail?.price ?? item.price)
+                    ? (item.detail?.price ?? item.price)
+                    : 0;
+                  const unitPrice = resolvedPrice > 0 ? formatPrice(resolvedPrice) : '—';
+                  const linePrice = resolvedPrice > 0 ? formatPrice(resolvedPrice * item.qty) : '—';
+                  const domId = sanitizeDomId(item.id);
+                  const tint = resolveTint(item.id);
+                  const isGift = item.detail?.type === 'gift';
+                  const giftDetails = item.detail?.gift;
+                  const disableDecrement = item.qty <= 0;
+                  const disableIncrement = isGift ? true : item.qty >= MAX_ITEM_QUANTITY;
+                  const placeholderInitial = item.name?.trim()?.charAt(0)?.toUpperCase() ?? 'C';
+                  return (
+                    <li
+                      key={item.id}
+                      id={domId}
+                      className="flex gap-3 rounded-[18px] border border-[rgba(226,185,127,0.16)] bg-white px-4 py-4 shadow-[0_10px_24px_rgba(59,43,26,0.08)] animate-[cartItemEnter_220ms_cubic-bezier(0.34,1.56,0.64,1)_both]"
+                    >
+                      <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[14px]" aria-hidden="true">
+                        <div
+                          className="absolute inset-0"
+                          style={{ background: `linear-gradient(135deg, ${tint.base}, ${tint.accent})` }}
+                        />
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt=""
+                            className="relative z-[1] h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="relative z-[1] flex h-full w-full items-center justify-center text-lg font-semibold text-[#C47A41]">
+                            {placeholderInitial}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-1 items-start gap-3">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="truncate text-sm font-semibold text-[#2F2A1E]">{item.name}</p>
+                          <p className="text-xs text-[#7C6F66]">{unitPrice} each</p>
+                          {isGift && giftDetails ? (
+                            <div className="space-y-1 text-xs text-[#6B5E57]">
+                              <p>Recipient: {giftDetails.recipientName}</p>
+                              <p>Deliver to: {giftDetails.address.city}, {giftDetails.address.pincode}</p>
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="text-sm font-semibold text-[#2F2A1E]" aria-label={`Line total ${linePrice}`}>
+                            {linePrice}
+                          </span>
+                          <div className="flex items-center gap-2" aria-label={`${item.name} quantity`}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextQty = Math.max(0, item.qty - 1);
+                                if (nextQty === 0) {
+                                  handleRemove(item.id);
+                                } else {
+                                  handleQuantityChange(item.id, nextQty);
+                                }
+                              }}
+                              aria-label={`Decrease quantity of ${item.name}`}
+                              disabled={disableDecrement}
+                              className={`flex h-8 w-8 items-center justify-center rounded-full border text-base font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82E7A6] ${
+                                disableDecrement
+                                  ? 'cursor-not-allowed border-[#82E7A6]/60 text-[#82E7A6]/80'
+                                  : 'border-[#0DB04B] text-[#0DB04B] hover:bg-[#0DB04B] hover:text-white'
+                              }`}
+                            >
+                              −
+                            </button>
+                            <span className="min-w-[2rem] text-center text-sm font-semibold text-[#2F2A1E]">{item.qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleQuantityChange(item.id, Math.min(item.qty + 1, MAX_ITEM_QUANTITY))}
+                              aria-label={`Increase quantity of ${item.name}`}
+                              disabled={disableIncrement}
+                              className={`flex h-8 w-8 items-center justify-center rounded-full border text-base font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82E7A6] ${
+                                disableIncrement
+                                  ? 'cursor-not-allowed border-[#82E7A6]/60 text-[#82E7A6]/80'
+                                  : 'border-[#0DB04B] text-[#0DB04B] hover:bg-[#0DB04B] hover:text-white'
+                              }`}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : (
+            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[16px] border border-[rgba(226,185,127,0.35)] bg-[#FFF5E9] px-5 py-8 text-center">
+              <p className="text-sm font-semibold text-[#3B2B1A]">Your cart is empty.</p>
               <button
                 type="button"
                 onClick={onExplore}
-                className="rounded-full bg-[#3B2B1A] px-7 py-3 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(82,53,32,0.24)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#4B4035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]"
+                className="rounded-[12px] bg-[#0DB04B] px-5 py-2 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(13,176,75,0.28)] transition-transform duration-200 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#82E7A6]"
               >
-                Explore catalogue
+                Browse cookies
               </button>
             </div>
-          ) : (
-            <ul className="space-y-4">
-              {items.map((item) => {
-                const priceAvailable = Number.isFinite(item.price);
-                const unitPrice = priceAvailable ? formatPrice(item.price) : '—';
-                const linePrice = priceAvailable ? formatPrice(item.price * item.qty) : '—';
-                const tint = resolveTint(item.id);
-                const domId = sanitizeDomId(item.id);
-                return (
-                  <li
-                    key={item.id}
-                    id={domId}
-                    className="flex items-center gap-4 rounded-[20px] bg-white/85 p-4 shadow-[0_18px_42px_rgba(139,122,104,0.18)] transition-transform duration-250 ease-out hover:-translate-y-[3px] hover:shadow-[0_18px_48px_rgba(90,64,53,0.2)] animate-[cartItemEnter_220ms_cubic-bezier(0.34,1.56,0.64,1)_both]"
-                  >
-                    <div className="relative h-[120px] w-[120px] shrink-0 overflow-hidden rounded-[12px]">
-                      <div
-                        className="absolute inset-0 border border-white/40"
-                        style={{
-                          borderRadius: '12px',
-                          background: `linear-gradient(135deg, ${tint.base}, ${tint.accent})`,
-                        }}
-                        aria-hidden="true"
-                      />
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="relative z-[1] h-full w-full object-cover"
-                          loading="lazy"
-                          onError={(event) => {
-                            event.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : null}
-                      <div className="absolute inset-0 z-[0] flex items-center justify-center text-3xl" aria-hidden="true">
-                        🍪
-                      </div>
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[16px] font-semibold text-[#3B2B1A]">{item.name}</p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-[#8F7C6A]">
-                        {priceAvailable ? (
-                          <>
-                            <span>{unitPrice} each</span>
-                            <span aria-hidden="true">•</span>
-                            <span className="text-sm font-semibold text-[#C47A41]" aria-label={`Line total ${linePrice}`}>
-                              {linePrice} total
-                            </span>
-                          </>
-                        ) : (
-                          <span>Price unavailable</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const nextQty = Math.max(0, item.qty - 1);
-                          if (nextQty === 0) {
-                            handleRemove(item.id);
-                          } else {
-                            handleQuantityChange(item.id, nextQty);
-                          }
-                        }}
-                        aria-label={`Decrease quantity of ${item.name}`}
-                        disabled={item.qty <= 0}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3B2B1A] text-lg text-white shadow-[0_10px_22px_rgba(59,43,26,0.28)] transition-transform duration-150 ease-out hover:-translate-y-[2px] hover:bg-[#4B4035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:-translate-y-0"
-                      >
-                        −
-                      </button>
-                      <span className="min-w-[2rem] text-center text-sm font-semibold text-[#3B2B1A]" aria-live="polite">
-                        {item.qty}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handleQuantityChange(item.id, Math.min(item.qty + 1, MAX_ITEM_QUANTITY))}
-                        aria-label={`Increase quantity of ${item.name}`}
-                        disabled={item.qty >= MAX_ITEM_QUANTITY}
-                        title={item.qty >= MAX_ITEM_QUANTITY ? `Limit of ${MAX_ITEM_QUANTITY} per item` : undefined}
-                        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#3B2B1A] text-lg text-white shadow-[0_10px_22px_rgba(59,43,26,0.28)] transition-transform duration-150 ease-out hover:-translate-y-[2px] hover:bg-[#4B4035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:-translate-y-0"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(item.id)}
-                      aria-label={`Remove ${item.name}`}
-                      className="ml-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#E35B48] shadow-[0_6px_16px_rgba(227,91,72,0.22)] transition-transform duration-150 ease-out hover:-translate-y-[2px] hover:bg-[#FFE3DE] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F1998C]"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
           )}
         </div>
 
         {/* Footer */}
-        <div className="mt-8 space-y-5">
-          <section className="rounded-[14px] border border-[rgba(226,185,127,0.28)] bg-[#FFF6F0] p-4 shadow-[0_12px_24px_rgba(59,43,26,0.06)]" aria-labelledby="checkout-address-heading">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p id="checkout-address-heading" className="text-xs font-semibold uppercase tracking-[0.28em] text-[#8E7360]">Delivery address</p>
-                {checkoutAddress ? (
-                  <div className="mt-2 text-sm text-[#3B2B1A]">
-                    <p className="font-semibold">{checkoutAddress.fullName}</p>
-                    <p>{checkoutAddress.line1}{checkoutAddress.line2 ? `, ${checkoutAddress.line2}` : ''}</p>
-                    <p>{checkoutAddress.city}{checkoutAddress.state ? `, ${checkoutAddress.state}` : ''}</p>
-                    <p>{checkoutAddress.postalCode}</p>
-                    <p className="text-[#6B5E57]">{checkoutAddress.phone}</p>
-                  </div>
-                ) : (
-                  <p className="mt-2 text-sm text-[#6B5E57]">
-                    Add a delivery address before paying. We’ll take you there if it’s missing.
-                  </p>
-                )}
+        <div className="border-t border-[rgba(226,185,127,0.25)] bg-white px-5 py-4">
+          <div className="space-y-3.5">
+            <div className="flex items-center gap-3 rounded-[18px] border border-[rgba(226,185,127,0.25)] bg-[#FFF9F2] px-4 py-3 text-left shadow-[0_12px_24px_rgba(59,43,26,0.08)]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F2E8DE] text-[#C47A41]">
+                <LocationPinIcon />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#8E7360]">Deliver to</p>
+                <p className="truncate text-sm font-semibold text-[#3B2B1A]">
+                  {checkoutAddress ? checkoutAddress.fullName?.trim() || 'Unnamed recipient' : 'No address saved'}
+                </p>
+                <p className="truncate text-xs text-[#6B5E57]">
+                  {checkoutAddress ? addressSummary ?? 'Add the street and landmark for smoother delivery.' : 'Add an address before checkout.'}
+                </p>
               </div>
               <button
                 type="button"
@@ -334,34 +390,48 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                     onCheckout();
                   }
                 }}
-                className="rounded-full border border-[#C47A41]/30 px-3 py-1 text-xs font-semibold text-[#C47A41] transition-colors duration-150 hover:bg-[#FBE9DA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]/40"
+                className="rounded-full border border-[#C47A41]/40 px-3 py-1.5 text-xs font-semibold text-[#C47A41] transition-colors duration-150 hover:bg-[#FCEFE3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]/40"
               >
-                Edit
+                {manageAddressLabel}
               </button>
             </div>
-          </section>
-          <div className="h-px w-full bg-[#EDE3D7]" aria-hidden="true" />
-          <div className="flex items-center justify-between text-sm text-[#4B4035]">
-            <span className="font-semibold text-[#3B2B1A]">Subtotal</span>
-            <span className="text-base font-semibold text-[#C47A41]">{formatPrice(totals.subtotal)}</span>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <button
-              type="button"
-              onClick={onExplore}
-              className="inline-flex w-full items-center justify-center rounded-[14px] bg-[#3B2B1A] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(59,43,26,0.26)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#4B4035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]"
-              style={{ backgroundImage: 'linear-gradient(140deg, #4B4035 0%, #3B2B1A 100%)' }}
-            >
-              Continue Shopping
-            </button>
-            <button
-              type="button"
-              onClick={onCheckout}
-              disabled={!hasItems}
-              className="inline-flex w-full items-center justify-center rounded-[14px] bg-[#C47A41] px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_rgba(196,122,65,0.3)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D48B52] hover:shadow-[0_20px_40px_rgba(196,122,65,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B2B1A] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:-translate-y-0 disabled:hover:bg-[#C47A41] disabled:hover:shadow-none"
-            >
-              Proceed to Checkout
-            </button>
+
+            <div className="rounded-[18px] border border-[rgba(226,185,127,0.22)] bg-white px-4 py-3 shadow-[0_12px_24px_rgba(59,43,26,0.08)]">
+              <div className="flex items-center justify-between text-sm text-[#6B5E57]">
+                <span>Subtotal</span>
+                <span className="font-semibold text-[#3B2B1A]">{formatPrice(totals.subtotal)}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="text-[#6B5E57]">Delivery fee</span>
+                {hasShipping ? (
+                  <span className="font-semibold text-[#3B2B1A]">{formatPrice(shippingAmount)}</span>
+                ) : (
+                  <span className="font-semibold text-[#0DB04B]">Included</span>
+                )}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm font-semibold text-[#2F2A1E]">
+                <span>Total payable</span>
+                <span>{formatPrice(payableTotal)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-[20px] bg-[#0DB04B] px-4 py-4 text-white shadow-[0_26px_48px_rgba(13,176,75,0.32)]">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-white/70">Total</p>
+                <p className="text-2xl font-semibold">{formatPrice(payableTotal)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={onCheckout}
+                disabled={checkoutDisabled}
+                className={`inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl leading-none text-[#0DB04B] transition-transform duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
+                  checkoutDisabled ? 'cursor-not-allowed opacity-60 hover:-translate-y-0' : 'hover:-translate-y-0.5'
+                }`}
+                aria-label="Proceed to payment"
+              >
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

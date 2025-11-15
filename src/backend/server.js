@@ -39,6 +39,21 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'idempotency-key']
 }));
 
+const STRIPE_CSP_DIRECTIVES = [
+  "default-src 'self'",
+  "script-src 'self' https://js.stripe.com",
+  "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  "connect-src 'self' https://api.stripe.com https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  "img-src 'self' data: https://*.stripe.com",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:"
+].join('; ');
+
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', STRIPE_CSP_DIRECTIVES);
+  next();
+});
+
 const PORT = process.env.PORT || 5000;
 // Server boot ID to detect restarts from the client
 const SERVER_BOOT_ID = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -112,12 +127,14 @@ const toMinorUnits = (amount) => Math.max(0, Math.round(Number(amount || 0) * 10
 
 const buildSuccessUrl = (origin, returnPath, orderId) => {
   const base = origin.replace(/\/$/, '') + returnPath;
-  return `${base}?orderId=${orderId}`;
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}orderId=${encodeURIComponent(orderId)}&session_id={CHECKOUT_SESSION_ID}`;
 };
 
 const buildCancelUrl = (origin, returnPath, orderId) => {
   const base = origin.replace(/\/$/, '') + returnPath;
-  return `${base}?orderId=${orderId}&canceled=1`;
+  const separator = base.includes('?') ? '&' : '?';
+  return `${base}${separator}orderId=${encodeURIComponent(orderId)}&canceled=1`;
 };
 
 const logPaymentEvent = (message, payload = {}) => {
@@ -150,6 +167,24 @@ const findOrderByIdempotency = async (idempotencyKey, email) => {
     return { id: doc.id, data: doc.data() };
   } catch (error) {
     console.warn('Failed to query order by idempotency', error.message);
+    return null;
+  }
+};
+
+const findOrderBySessionId = async (sessionId) => {
+  if (!sessionId) return null;
+  try {
+    const snapshot = await getOrdersCollection()
+      .where('providerSessionId', '==', sessionId)
+      .limit(1)
+      .get();
+    if (snapshot.empty) {
+      return null;
+    }
+    const doc = snapshot.docs[0];
+    return { id: doc.id, data: doc.data() };
+  } catch (error) {
+    console.warn('Failed to find order by session id', error.message);
     return null;
   }
 };
@@ -446,8 +481,8 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
     const idempotencyKey = req.get('Idempotency-Key') || req.body?.clientRequestId || null;
     const cart = req.body?.cart || {};
     const totalAmount = Number(req.body?.totalAmount || 0);
-    const returnPath = typeof req.body?.returnPath === 'string' ? req.body.returnPath : '/checkout';
-  const successPath = typeof req.body?.successPath === 'string' ? req.body.successPath : '/order-success';
+    const returnPath = typeof req.body?.returnPath === 'string' ? req.body.returnPath : '/payment-status';
+    const successPath = typeof req.body?.successPath === 'string' ? req.body.successPath : '/order-success';
     const shippingAddress = req.body?.shippingAddress || null;
     const metadata = req.body?.metadata || {};
     const customerEmail = (req.body?.customerEmail || req.user?.email || '').toLowerCase();
@@ -477,9 +512,10 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
     }
 
     const localOrderId = (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const origin = `${req.protocol}://${req.get('host')}`;
-  const successUrl = buildSuccessUrl(origin, returnPath, localOrderId);
-  const cancelUrl = buildCancelUrl(origin, returnPath, localOrderId);
+    const originHeader = req.get('origin');
+    const origin = originHeader || `${req.protocol}://${req.get('host')}`;
+    const successUrl = buildSuccessUrl(origin, returnPath, localOrderId);
+    const cancelUrl = buildCancelUrl(origin, returnPath, localOrderId);
 
     const session = await stripeInstance.checkout.sessions.create({
       mode: 'payment',
@@ -610,6 +646,129 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
   }
 });
 
+app.get('/api/payment-status', requireAuth, async (req, res) => {
+  if (!adminDb) {
+    return res.status(503).json({ message: 'Firestore not configured on server.' });
+  }
+  if (!stripeInstance) {
+    return res.status(503).json({ message: 'Stripe is not configured on the server.' });
+  }
+
+  const sessionIdParam = typeof req.query?.sessionId === 'string' ? req.query.sessionId : null;
+  const orderIdParam = typeof req.query?.orderId === 'string' ? req.query.orderId : null;
+  if (!sessionIdParam && !orderIdParam) {
+    return res.status(400).json({ message: 'sessionId or orderId is required.' });
+  }
+
+  const tokenEmail = typeof req.user?.email === 'string' ? req.user.email.toLowerCase() : null;
+  if (!tokenEmail) {
+    return res.status(400).json({ message: 'Authenticated email missing on token.' });
+  }
+
+  try {
+    let docRef = null;
+    let orderData = null;
+
+    if (orderIdParam) {
+      const candidateRef = getOrdersCollection().doc(String(orderIdParam));
+      const candidateSnap = await candidateRef.get();
+      if (candidateSnap.exists) {
+        docRef = candidateRef;
+        orderData = candidateSnap.data();
+      }
+    }
+
+    if (!orderData && sessionIdParam) {
+      const located = await findOrderBySessionId(sessionIdParam);
+      if (located) {
+        docRef = getOrdersCollection().doc(located.id);
+        orderData = located.data;
+      }
+    }
+
+    let session = null;
+    if (!orderData && sessionIdParam) {
+      try {
+        session = await stripeInstance.checkout.sessions.retrieve(sessionIdParam, { expand: ['payment_intent'] });
+        const derivedOrderId = session.metadata?.localOrderId || session.client_reference_id || orderIdParam;
+        if (derivedOrderId) {
+          const fallbackRef = getOrdersCollection().doc(String(derivedOrderId));
+          const fallbackSnap = await fallbackRef.get();
+          if (fallbackSnap.exists) {
+            docRef = fallbackRef;
+            orderData = fallbackSnap.data();
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to retrieve checkout session for payment-status', error.message);
+      }
+    }
+
+    if (!orderData) {
+      return res.status(404).json({ message: 'Order not found for the provided reference.' });
+    }
+
+    const storedEmail = typeof orderData.userEmail === 'string' ? orderData.userEmail.toLowerCase() : '';
+    if (storedEmail && storedEmail !== tokenEmail && process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({ message: 'Forbidden: order does not belong to the current user.' });
+    }
+
+    if (!session && (sessionIdParam || orderData.providerSessionId)) {
+      const lookupSessionId = sessionIdParam || orderData.providerSessionId;
+      try {
+        session = await stripeInstance.checkout.sessions.retrieve(lookupSessionId, { expand: ['payment_intent'] });
+      } catch (error) {
+        console.warn('Failed to retrieve checkout session for payment-status', error.message);
+      }
+    }
+
+    let status = orderData.status || 'pending';
+    let lastKnownError = orderData.lastKnownError || null;
+
+    if (session) {
+      const updateFields = {
+        providerInfo: {
+          id: session.id,
+          payment_status: session.payment_status,
+          status: session.status,
+          amount_total: session.amount_total,
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      if (session.payment_status === 'paid') {
+        status = 'completed';
+        lastKnownError = null;
+        if (docRef) {
+          await docRef.set({
+            status,
+            paymentIntentId: session.payment_intent || null,
+            lastKnownError: admin.firestore.FieldValue.delete(),
+            ...updateFields,
+          }, { merge: true });
+        }
+      } else if (session.status === 'expired' || session.payment_status === 'unpaid') {
+        status = 'failed';
+        lastKnownError = lastKnownError || 'Payment session expired before completion.';
+        if (docRef) {
+          await docRef.set({
+            status,
+            lastKnownError,
+            ...updateFields,
+          }, { merge: true });
+        }
+      } else if (docRef) {
+        await docRef.set(updateFields, { merge: true });
+      }
+    }
+
+    res.status(200).json({ status, lastKnownError });
+  } catch (error) {
+    console.error('Error resolving payment status', error);
+    res.status(500).json({ message: 'Failed to resolve payment status.' });
+  }
+});
+
 app.post('/api/resume-payment', requireAuth, async (req, res) => {
   if (!stripeInstance) {
     return res.status(503).json({ message: 'Stripe is not configured on the server.' });
@@ -640,6 +799,8 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
       }
     }
 
+    logPaymentEvent('order_resume_attempt', { localOrderId: orderId, email: tokenEmail });
+
     if (order.status === 'completed') {
       return res.status(200).json({ status: 'completed' });
     }
@@ -651,7 +812,12 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
       try {
         const session = await stripeInstance.checkout.sessions.retrieve(order.providerSessionId);
         if (session && session.url && session.status !== 'expired') {
-          return res.status(200).json({ checkoutUrl: session.url, status: session.status === 'complete' ? 'completed' : 'pending' });
+          logPaymentEvent('order_resume_existing_session', { localOrderId: orderId, sessionId: session.id, email: tokenEmail });
+          return res.status(200).json({
+            checkoutUrl: session.url,
+            status: session.status === 'complete' ? 'completed' : 'pending',
+            providerSessionId: session.id,
+          });
         }
       } catch (err) {
         console.warn('Unable to reuse existing checkout session', err.message);
@@ -663,10 +829,11 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
       return res.status(400).json({ message: 'Order amount invalid. Please recreate the order.' });
     }
 
-    const origin = `${req.protocol}://${req.get('host')}`;
-    const returnPath = order.returnPath || '/checkout';
-  const successPath = order.successPath || '/order-success';
-  const successUrl = buildSuccessUrl(origin, returnPath, orderId);
+    const originHeader = req.get('origin');
+    const origin = originHeader || `${req.protocol}://${req.get('host')}`;
+    const returnPath = order.returnPath || '/payment-status';
+    const successPath = order.successPath || '/order-success';
+    const successUrl = buildSuccessUrl(origin, returnPath, orderId);
     const cancelUrl = buildCancelUrl(origin, returnPath, orderId);
 
     const session = await stripeInstance.checkout.sessions.create({
@@ -701,8 +868,8 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
       checkoutUrl: session.url,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    logPaymentEvent('order_resumed', { localOrderId: orderId, sessionId: session.id });
-    res.status(200).json({ checkoutUrl: session.url, status: 'pending' });
+    logPaymentEvent('order_resumed_new_session', { localOrderId: orderId, sessionId: session.id, email: tokenEmail });
+    res.status(200).json({ checkoutUrl: session.url, status: 'pending', providerSessionId: session.id });
   } catch (error) {
     console.error('Failed to resume payment', error);
     res.status(500).json({ message: error?.message || 'Unable to resume payment.' });
@@ -732,6 +899,8 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
       return res.status(503).send('Firestore not configured');
     }
     const ordersRef = getOrdersCollection();
+    const sessionId = event?.data?.object?.id;
+    logPaymentEvent('webhook_received', { eventType: event.type, sessionId });
 
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       const session = event.data.object;

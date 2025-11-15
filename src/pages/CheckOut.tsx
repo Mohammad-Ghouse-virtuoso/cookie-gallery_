@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { StripeCheckoutFlow } from '@/components/payments/StripeCheckoutFlow';
 import { loadCheckoutAddress } from '@/lib/checkoutAddressStorage';
 import { loadPendingOrder } from '@/lib/pendingOrderStorage';
+import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
 
 export default function Checkout() {
   const { cart, setCart } = useCart();
@@ -19,6 +20,12 @@ export default function Checkout() {
   const initialOrderId = searchParams.get('orderId');
   const storedOrder = useMemo(() => loadPendingOrder(), []);
   const hasActiveOrder = Boolean(initialOrderId || storedOrder);
+
+  const cookieLookup = useMemo(() => {
+    const map = new Map<string, (typeof cookieList)[number]>();
+    cookieList.forEach(cookie => map.set(cookie.id, cookie));
+    return map;
+  }, []);
 
   useEffect(() => {
     setShowLoginPrompt(!user);
@@ -38,43 +45,109 @@ export default function Checkout() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const effectiveCart = useMemo(() => {
-    const hasLocalCart = Object.keys(cart).length > 0;
-    if (hasLocalCart) {
-      return cart;
-    }
-    return storedOrder?.cart ?? {};
-  }, [cart, storedOrder?.cart]);
-
-  const cartSnapshot = useMemo(() => {
+  const localCartSnapshot = useMemo(() => {
     const snapshot: Record<string, number> = {};
-    Object.entries(effectiveCart).forEach(([id, qty]) => {
+    Object.entries(cart).forEach(([id, qty]) => {
+      if (id === '_meta') {
+        return;
+      }
       if (typeof qty === 'number' && qty > 0) {
         snapshot[id] = qty;
       }
     });
     return snapshot;
-  }, [effectiveCart]);
+  }, [cart]);
 
-  const selectedCookies = useMemo(
-    () => cookieList.filter(cookie => (cartSnapshot[cookie.id] ?? 0) > 0),
-    [cartSnapshot],
+  const storedCartSnapshot = useMemo(() => {
+    const snapshot: Record<string, number> = {};
+    Object.entries(storedOrder?.cart ?? {}).forEach(([id, qty]) => {
+      if (typeof qty === 'number' && qty > 0) {
+        snapshot[id] = qty;
+      }
+    });
+    return snapshot;
+  }, [storedOrder?.cart]);
+
+  const hasLocalCart = useMemo(() => Object.keys(localCartSnapshot).length > 0, [localCartSnapshot]);
+
+  const cartSnapshot = useMemo(
+    () => (hasLocalCart ? localCartSnapshot : storedCartSnapshot),
+    [hasLocalCart, localCartSnapshot, storedCartSnapshot],
   );
+
+  const mergedCartDetails = useMemo(() => {
+    const stateWithMeta = cart as CartStateWithMeta;
+    const details: Record<string, CartLineItemDetail> = {};
+    const localMeta = stateWithMeta._meta ?? {};
+    Object.entries(localMeta).forEach(([id, detail]) => {
+      details[id] = detail;
+    });
+    const storedDetails = storedOrder?.cartDetails ?? {};
+    Object.entries(storedDetails).forEach(([id, detail]) => {
+      if (!details[id]) {
+        details[id] = detail;
+      }
+    });
+    return details;
+  }, [cart, storedOrder?.cartDetails]);
+
+  const orderLines = useMemo(() => {
+    return Object.entries(cartSnapshot).map(([id, qty]) => {
+      const meta = mergedCartDetails[id];
+      const cookieInfo = cookieLookup.get(id);
+      const fallbackDetail: CartLineItemDetail = meta ?? {
+        type: 'cookie',
+        name: cookieInfo?.name ?? id,
+        price: cookieInfo?.price ?? 0,
+        image: cookieInfo?.src,
+        productId: cookieInfo?.id,
+      };
+      const resolvedDetail: CartLineItemDetail = {
+        ...fallbackDetail,
+        type: fallbackDetail.type ?? 'cookie',
+        name: fallbackDetail.name || cookieInfo?.name || id,
+        price:
+          typeof fallbackDetail.price === 'number' && fallbackDetail.price > 0
+            ? fallbackDetail.price
+            : cookieInfo?.price ?? fallbackDetail.price ?? 0,
+        image: fallbackDetail.image ?? cookieInfo?.src,
+        productId: fallbackDetail.productId ?? cookieInfo?.id,
+      };
+
+      if (resolvedDetail.price < 0) {
+        resolvedDetail.price = 0;
+      }
+
+      return {
+        id,
+        qty,
+        detail: resolvedDetail,
+      };
+    });
+  }, [cartSnapshot, cookieLookup, mergedCartDetails]);
 
   const totalAmount = useMemo(
-    () => selectedCookies.reduce((sum, cookie) => sum + (cartSnapshot[cookie.id] ?? 0) * cookie.price, 0),
-    [selectedCookies, cartSnapshot],
+    () => orderLines.reduce((sum, line) => sum + (line.detail.price ?? 0) * line.qty, 0),
+    [orderLines],
   );
 
+  const checkoutCartDetails = useMemo(() => {
+    const details: Record<string, CartLineItemDetail> = {};
+    orderLines.forEach(line => {
+      details[line.id] = line.detail;
+    });
+    return details;
+  }, [orderLines]);
+
   useEffect(() => {
-    if (selectedCookies.length === 0 && !hasActiveOrder && !paymentCompleted) {
+    if (orderLines.length === 0 && !hasActiveOrder && !paymentCompleted) {
       const timer = window.setTimeout(() => navigate('/'), 220);
       return () => window.clearTimeout(timer);
     }
     return undefined;
-  }, [selectedCookies.length, navigate, hasActiveOrder, paymentCompleted]);
+  }, [orderLines.length, navigate, hasActiveOrder, paymentCompleted]);
 
-  if (selectedCookies.length === 0 && !hasActiveOrder && !paymentCompleted) {
+  if (orderLines.length === 0 && !hasActiveOrder && !paymentCompleted) {
     return null;
   }
 
@@ -118,31 +191,52 @@ export default function Checkout() {
               <header className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[#3B2B1A]">Your cookies</h2>
                 <span className="rounded-full bg-[#3B2B1A] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-white">
-                  {selectedCookies.length} items
+                  {orderLines.length} items
                 </span>
               </header>
               <ul className="space-y-3">
-                {selectedCookies.map(cookie => (
-                  <li
-                    key={cookie.id}
-                    className="flex items-center justify-between rounded-[14px] border border-[rgba(226,185,127,0.26)] bg-white px-4 py-3 shadow-[0_6px_14px_rgba(59,43,26,0.05)]"
-                  >
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={cookie.src}
-                        alt={cookie.name}
-                        className="h-16 w-16 rounded-[12px] object-cover shadow-[inset_0_1px_2px_rgba(59,43,26,0.08)]"
-                      />
-                      <div>
-                        <p className="text-sm font-semibold text-[#3B2B1A]">{cookie.name}</p>
-                        <p className="text-xs text-[#6B5E57]">Qty: {cartSnapshot[cookie.id]}</p>
+                {orderLines.map(line => {
+                  const { detail } = line;
+                  const giftInfo = detail.type === 'gift' ? detail.gift : null;
+                  const displayImage = detail.image;
+                  const displayName = detail.name || line.id;
+                  const deliverySummary = giftInfo
+                    ? [giftInfo.address.city, giftInfo.address.pincode].filter(Boolean).join(', ')
+                    : null;
+                  return (
+                    <li
+                      key={line.id}
+                      className="flex items-center justify-between rounded-[14px] border border-[rgba(226,185,127,0.26)] bg-white px-4 py-3 shadow-[0_6px_14px_rgba(59,43,26,0.05)]"
+                    >
+                      <div className="flex items-center gap-4">
+                        {displayImage ? (
+                          <img
+                            src={displayImage}
+                            alt={displayName}
+                            className="h-16 w-16 rounded-[12px] object-cover shadow-[inset_0_1px_2px_rgba(59,43,26,0.08)]"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded-[12px] bg-[#FBE9DA] text-sm font-semibold text-[#C47A41]">
+                            {displayName.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold text-[#3B2B1A]">{displayName}</p>
+                          <p className="text-xs text-[#6B5E57]">Qty: {line.qty}</p>
+                          {giftInfo ? (
+                            <div className="mt-1 space-y-0.5 text-xs text-[#6B5E57]">
+                              <p>Recipient: {giftInfo.recipientName}</p>
+                              {deliverySummary ? <p>Delivery: {deliverySummary}</p> : null}
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-sm font-semibold text-[#C47A41]">
-                      {formatPrice((cartSnapshot[cookie.id] ?? 0) * cookie.price)}
-                    </p>
-                  </li>
-                ))}
+                      <p className="text-sm font-semibold text-[#C47A41]">
+                        {formatPrice((detail.price ?? 0) * line.qty)}
+                      </p>
+                    </li>
+                  );
+                })}
               </ul>
 
               <div className="flex items-center justify-between border-t border-[rgba(226,185,127,0.26)] pt-4">
@@ -190,13 +284,14 @@ export default function Checkout() {
             </p>
             <StripeCheckoutFlow
               cart={cartSnapshot}
+              cartDetails={checkoutCartDetails}
               totalAmount={totalAmount}
               user={user}
               shippingAddress={checkoutAddress}
               onCartCleared={() => setCart({})}
               onPaymentCompletedChange={setPaymentCompleted}
               extraOrderData={{ flow: 'standard' }}
-              returnPath="/checkout"
+              returnPath="/payment-status"
               successPath="/order-success"
               initialOrderId={initialOrderId}
               onReturnToCart={() => navigate('/cookies')}

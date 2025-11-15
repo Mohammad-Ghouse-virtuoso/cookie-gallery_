@@ -167,10 +167,12 @@ export default function GiftModal() {
               </div>
               <div className="max-h-[80vh] overflow-y-auto px-6 pb-8 sm:px-10">
                 <GiftForm
+                  key={`${selectedBox?.key ?? 'gift-modal'}-${state.sessionStamp}`}
                   box={selectedBox}
                   mode="modal"
                   onRequestClose={handleDismiss}
                   headingId="gift-modal-title"
+                  giftId={selectedBox?.key ?? null}
                 />
               </div>
             </motion.div>

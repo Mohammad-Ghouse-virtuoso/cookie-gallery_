@@ -5,6 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { goldenSeasonBoxes } from '@/data/goldenSeasonBoxes';
 import { useGiftExperience } from '@/context/GiftExperienceContext';
 import { useNavigate } from 'react-router-dom';
+import type { CartStateWithMeta } from '@/types/cart';
 
 type EagerModule = {
   default: string;
@@ -30,10 +31,6 @@ type CountdownState = {
   hours: number;
   minutes: number;
   seconds: number;
-};
-
-type CartStateWithMeta = Record<string, number> & {
-  _meta?: Record<string, { name?: string; image?: string; price?: number }>;
 };
 
 type EnrichedBox = BoxDefinition & {
@@ -380,9 +377,11 @@ export default function GoldenSeasonHero() {
         next[productKey] = nextQty;
         const meta = (next._meta ??= {});
         meta[productKey] = {
+          type: 'cookie',
           name: box.title,
           price: box.price,
           image: box.asset?.src ?? '',
+          productId: productKey,
         };
       }
 

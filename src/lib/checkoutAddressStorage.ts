@@ -1,6 +1,7 @@
 import type { CheckoutAddress } from '@/types/checkout';
 
-const STORAGE_KEY = 'cg_checkout_address_v1';
+const STORAGE_KEY_BASE = 'cg_checkout_address_v1';
+const LEGACY_STORAGE_KEY = STORAGE_KEY_BASE;
 
 const emptyAddress: CheckoutAddress = {
   fullName: '',
@@ -17,12 +18,31 @@ export function getEmptyCheckoutAddress(): CheckoutAddress {
   return { ...emptyAddress };
 }
 
-export function loadCheckoutAddress(): CheckoutAddress | null {
+function resolveKey(ownerId?: string | null) {
+  if (!ownerId) {
+    return STORAGE_KEY_BASE;
+  }
+  return `${STORAGE_KEY_BASE}:${ownerId.toLowerCase()}`;
+}
+
+export function loadCheckoutAddress(ownerId?: string | null): CheckoutAddress | null {
   if (typeof window === 'undefined') {
     return null;
   }
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const storage = window.localStorage;
+    const activeKey = resolveKey(ownerId);
+    let raw = storage.getItem(activeKey);
+
+    if (!raw && ownerId) {
+      // Attempt to migrate any legacy value that was stored without user scoping.
+      raw = storage.getItem(LEGACY_STORAGE_KEY);
+      if (raw) {
+        storage.setItem(activeKey, raw);
+        storage.removeItem(LEGACY_STORAGE_KEY);
+      }
+    }
+
     if (!raw) {
       return null;
     }
@@ -39,7 +59,7 @@ export function loadCheckoutAddress(): CheckoutAddress | null {
   }
 }
 
-export function persistCheckoutAddress(address: CheckoutAddress) {
+export function persistCheckoutAddress(address: CheckoutAddress, ownerId?: string | null) {
   if (typeof window === 'undefined') {
     return;
   }
@@ -47,18 +67,18 @@ export function persistCheckoutAddress(address: CheckoutAddress) {
     ...emptyAddress,
     ...address,
   };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  window.localStorage.setItem(resolveKey(ownerId), JSON.stringify(payload));
 }
 
-export function clearCheckoutAddress() {
+export function clearCheckoutAddress(ownerId?: string | null) {
   if (typeof window === 'undefined') {
     return;
   }
-  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(resolveKey(ownerId));
 }
 
-export function hasCheckoutAddress(): boolean {
-  const stored = loadCheckoutAddress();
+export function hasCheckoutAddress(ownerId?: string | null): boolean {
+  const stored = loadCheckoutAddress(ownerId);
   if (!stored) {
     return false;
   }

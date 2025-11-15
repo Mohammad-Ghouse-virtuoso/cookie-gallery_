@@ -1,12 +1,14 @@
 // src/App.tsx
 
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from "react-router-dom";
 
 // Import all of your components
 import NavBar from "./components/NavBar";
 import Home from "./pages/Home";
 import CookieCatalogue from "./pages/CookieCatalogue";
-import Checkout from "./pages/CheckOut";
+import CheckoutLegacy from "./pages/CheckOut";
+import CheckoutPage from "./pages/CheckoutPage";
 import OrderSuccess from "./pages/OrderSuccess";
 import SignIn from "./pages/SignIn";
 import SignedOut from "./pages/Signout";
@@ -14,11 +16,14 @@ import ProtectedRoutes from "./components/ProtectedRoutes";
 import Story from "./pages/Story";
 import BehindTheScenes from "./pages/BehindTheScenes";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import ProductDetailPage from "./pages/ProductDetailPage.tsx";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import GoldenSeason from "./pages/GoldenSeason";
 import GiftModal from "./components/gifting/GiftModal";
 import GiftExperiencePage from "./pages/gift/GiftExperiencePage";
 import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
+import PaymentStatusPage from "./pages/PaymentStatus";
+import NotFound from "./pages/NotFound";
+import { checkoutPageEnabled } from "./config/features";
 
 // Import AuthProvider
 import { AuthProvider } from "./context/AuthContext";
@@ -26,6 +31,16 @@ import { CartProvider } from "./context/CartContext";
 import { GiftExperienceProvider } from "./context/GiftExperienceContext";
 
 // New component to handle conditional layout
+function CheckoutAddressRedirect() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    navigate('/checkout#address', { replace: true });
+  }, [navigate]);
+
+  return null;
+}
+
 function AppContent() {
   const location = useLocation();
   // Check if the current path is the sign-in or signed-out page
@@ -41,7 +56,6 @@ function AppContent() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signed-out" element={<SignedOut />} />
         <Route path="/order-success" element={<OrderSuccess />} />
-
         {/* Protected routes (these will have the NavBar rendered) */}
         <Route path="/" element={<ProtectedRoutes />}>
           {/* Explicit home route to support navigate('/home') after sign-in */}
@@ -49,14 +63,22 @@ function AppContent() {
           <Route path="home" element={<Home />} />
           <Route path="cookies" element={<CookieCatalogue />} />
           <Route path="product/:cookieId" element={<ProductDetailPage />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="checkout/address" element={<CheckoutAddressPage />} />
+          <Route
+            path="checkout"
+            element={checkoutPageEnabled ? <CheckoutPage /> : <CheckoutLegacy />}
+          />
+          <Route
+            path="checkout/address"
+            element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
+          />
+          <Route path="payment-status" element={<PaymentStatusPage />} />
           <Route path="story" element={<Story />} />
           <Route path="behind-the-scenes" element={<BehindTheScenes />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
           <Route path="golden-season" element={<GoldenSeason />} />
           <Route path="gift/:boxId" element={<GiftExperiencePage />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

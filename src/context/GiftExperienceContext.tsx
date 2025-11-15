@@ -9,6 +9,7 @@ type GiftToast = {
 export type GiftExperienceState = {
   isModalOpen: boolean;
   selectedBoxKey: string | null;
+  sessionStamp: number;
 };
 
 type GiftExperienceValue = {
@@ -25,15 +26,16 @@ export function GiftExperienceProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GiftExperienceState>({
     isModalOpen: false,
     selectedBoxKey: null,
+    sessionStamp: 0,
   });
   const [toast, setToast] = useState<GiftToast>(null);
 
   const openModal = useCallback((boxKey: string) => {
-    setState({ isModalOpen: true, selectedBoxKey: boxKey });
+    setState({ isModalOpen: true, selectedBoxKey: boxKey, sessionStamp: Date.now() });
   }, []);
 
   const closeModal = useCallback((showCanceledToast?: boolean) => {
-    setState({ isModalOpen: false, selectedBoxKey: null });
+    setState(previous => ({ isModalOpen: false, selectedBoxKey: null, sessionStamp: previous.sessionStamp }));
     if (showCanceledToast) {
       setToast({ message: 'Gift creation canceled.', id: Date.now() });
     }

@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import GoldenSeasonHero from '../components/GoldenSeasonHero';
 import SectionDivider from '../components/SectionDivider';
 
@@ -42,6 +43,37 @@ const tastingNotes = [
 ];
 
 export default function GoldenSeason() {
+  const navigate = useNavigate();
+  const conciergeSurfaceStyle = useMemo(() => ({
+    marginTop: 'var(--space-xl)',
+    padding: 'var(--space-xl)',
+    borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-medium)',
+    background: 'rgba(248, 237, 220, 0.45)',
+    border: '1px solid rgba(219, 166, 97, 0.28)',
+  }), []);
+
+  const tastingGridStyle = useMemo(() => ({
+    gap: 'var(--space-md)',
+  }), []);
+
+  const tastingCardStyle = useMemo(() => ({
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid rgba(219, 166, 97, 0.28)',
+    background: 'rgba(255, 250, 243, 0.92)',
+    padding: 'var(--space-xl)',
+    boxShadow: 'var(--shadow-light)',
+  }), []);
+
+  const highlightCardStyle = useMemo(() => ({
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid rgba(219, 166, 97, 0.28)',
+    background: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(6px)',
+    boxShadow: 'var(--shadow-light)',
+    padding: 'var(--space-lg)',
+  }), []);
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, []);
@@ -54,10 +86,11 @@ export default function GoldenSeason() {
 
       <section
         id="golden-season-preorder"
-        className="max-w-5xl mx-auto px-6 py-12 sm:py-16 bg-[rgba(248,237,220,0.45)] rounded-3xl shadow-[0_28px_60px_-32px_rgba(91,58,32,0.35)] mt-10"
+        className="mx-auto max-w-5xl"
+        style={conciergeSurfaceStyle}
         aria-labelledby="preorder-heading"
       >
-        <div className="grid gap-8 md:grid-cols-[0.8fr_1fr] items-start">
+        <div className="grid items-start gap-8 md:grid-cols-[0.8fr_1fr]">
           <div>
             <p className="text-xs tracking-[0.32em] uppercase text-[rgba(91,58,32,0.72)] font-semibold">Golden Season Concierge</p>
             <h2
@@ -70,12 +103,43 @@ export default function GoldenSeason() {
               Choose your box, add concierge notes, and lock in your dispatch week. We&apos;ll send tasting cues
               and a gift-ready unboxing guide as soon as your batch begins tempering.
             </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/gift/warm-glow')}
+                className="inline-flex items-center justify-center text-sm font-semibold text-white"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'linear-gradient(135deg, #e6b76f 0%, #d49a58 100%)',
+                  boxShadow: 'var(--shadow-medium)',
+                  transition: `transform var(--duration-small) ease, box-shadow var(--duration-small) ease`,
+                }}
+              >
+                Personalise a gift
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/cookies')}
+                className="inline-flex items-center justify-center text-sm font-semibold text-[#5b3a20]"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: 'var(--radius-pill)',
+                  border: '1px solid rgba(219, 166, 97, 0.4)',
+                  background: 'rgba(248, 237, 220, 0.7)',
+                  boxShadow: 'var(--shadow-light)',
+                  transition: `transform var(--duration-small) ease, box-shadow var(--duration-small) ease`,
+                }}
+              >
+                View seasonal cookies
+              </button>
+            </div>
           </div>
           <ul className="grid gap-4" aria-label="Golden Season premium services">
             {featureHighlights.map(feature => (
               <li
                 key={feature.heading}
-                className="rounded-2xl bg-white/70 backdrop-blur-sm border border-[rgba(219,166,97,0.28)] p-5 shadow-[0_18px_40px_-30px_rgba(91,58,32,0.55)]"
+                style={highlightCardStyle}
               >
                 <h3 className="text-lg font-semibold text-[#5b3a20]">{feature.heading}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[rgba(74,47,26,0.75)]">{feature.body}</p>
@@ -85,7 +149,10 @@ export default function GoldenSeason() {
         </div>
       </section>
 
-      <section className="max-w-5xl mx-auto px-6 py-16">
+      <section
+        className="mx-auto max-w-5xl"
+        style={{ padding: 'var(--space-xl)' }}
+      >
         <p className="text-xs tracking-[0.32em] uppercase text-[rgba(91,58,32,0.72)] font-semibold text-center">
           tasting notes
         </p>
@@ -96,11 +163,11 @@ export default function GoldenSeason() {
           Designed for gifting, curated for immersive flavourscapes. Choose the mood—we&apos;ll finish the story with
           ribbons, pairings, and freshly tempered chocolate.
         </p>
-        <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid md:grid-cols-2 lg:grid-cols-3" style={tastingGridStyle}>
           {tastingNotes.map(note => (
             <article
               key={note.title}
-              className="rounded-3xl border border-[rgba(219,166,97,0.28)] bg-[rgba(255,250,243,0.92)] p-8 shadow-[0_24px_48px_-32px_rgba(91,58,32,0.5)]"
+              style={tastingCardStyle}
             >
               <h3 className="text-2xl font-semibold text-[#4b2f1d]">{note.title}</h3>
               <div className="mt-3 space-y-3 text-base leading-relaxed text-[rgba(74,47,26,0.78)]">

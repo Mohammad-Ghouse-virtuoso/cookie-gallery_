@@ -11,6 +11,8 @@ export type CheckoutAddress = {
 
 export type PendingOrderStatus = 'pending' | 'completed' | 'failed';
 
+import type { CartLineItemDetail } from './cart';
+
 export type PendingOrderSnapshot = {
   localOrderId: string;
   createdAt: number;
@@ -21,4 +23,7 @@ export type PendingOrderSnapshot = {
   providerSessionId?: string;
   lastKnownError?: string;
   updatedAt?: number;
+  providerInfo?: Record<string, unknown>;
+  successPath?: string;
+  cartDetails?: Record<string, CartLineItemDetail>;
 };

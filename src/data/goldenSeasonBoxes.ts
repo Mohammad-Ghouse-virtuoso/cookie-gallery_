@@ -1,6 +1,4 @@
-import warmBoxHero from '../assets/Warm_box_cookies_3.png';
-import midnightBoxHero from '../assets/Midnight_luxe_1.jpeg';
-import starlightBoxHero from '../assets/Starlight_luxe_1.jpeg';
+import { resolveImage } from '@/lib/goldenSeasonImageResolver';
 
 export type GoldenSeasonPlaceholderTone = 'warm' | 'midnight' | 'starlight';
 
@@ -23,7 +21,7 @@ export const goldenSeasonBoxes: GoldenSeasonBox[] = [
     price: 1399,
     imagePriority: ['box-warm', 'box-cozy', 'box'],
     placeholderTone: 'warm',
-    previewImage: warmBoxHero,
+    previewImage: resolveImage('warm-glow', 'hero'),
     previewAlt: 'Golden Hearth cookies with ribbons on a wooden table',
   },
   {
@@ -33,7 +31,7 @@ export const goldenSeasonBoxes: GoldenSeasonBox[] = [
     price: 1599,
     imagePriority: ['box-midnight', 'box-dark', 'box'],
     placeholderTone: 'midnight',
-    previewImage: midnightBoxHero,
+    previewImage: resolveImage('midnight-luxe', 'hero'),
     previewAlt: 'Midnight Luxe dark chocolate cookies on black marble',
   },
   {
@@ -43,7 +41,7 @@ export const goldenSeasonBoxes: GoldenSeasonBox[] = [
     price: 1699,
     imagePriority: ['box-starlight', 'box-rose', 'box'],
     placeholderTone: 'starlight',
-    previewImage: starlightBoxHero,
+    previewImage: resolveImage('starlight-box', 'hero'),
     previewAlt: 'Starlight Reverie rose-pistachio cookies under soft lights',
   },
 ];

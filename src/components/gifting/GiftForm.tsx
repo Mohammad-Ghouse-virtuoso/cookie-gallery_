@@ -1,30 +1,94 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth } from '@/context/AuthContext';
 import { GiftProgressBar } from './GiftProgressBar';
 import { GiftPreviewCard } from './GiftPreviewCard';
-import { StripeCheckoutFlow } from '@/components/payments/StripeCheckoutFlow';
 import { persistGiftAddress, getEmptyAddress, readStoredAddress } from '@/lib/giftFormStorage';
 import type { GiftAddress, GiftFormState, GiftRecipientType } from '@/types/giftExperience';
 import type { GoldenSeasonBox } from '@/data/goldenSeasonBoxes';
+import { useCart } from '@/context/CartContext';
+import type { CartGiftDetails, CartStateWithMeta } from '@/types/cart';
 
 const TOTAL_STEPS = 4;
 
-const recipientOptions: Array<{ id: GiftRecipientType; label: string; emoji: string }> = [
-  { id: 'mom', label: 'Mom', emoji: '🌸' },
-  { id: 'dad', label: 'Dad', emoji: '🎩' },
-  { id: 'friend', label: 'Friend', emoji: '🤝' },
-  { id: 'girlfriend', label: 'Girlfriend', emoji: '💐' },
-  { id: 'boyfriend', label: 'Boyfriend', emoji: '🎧' },
-  { id: 'spouse', label: 'Spouse', emoji: '💍' },
-  { id: 'custom', label: 'Custom', emoji: '📝' },
+type RecipientOption = {
+  id: GiftRecipientType;
+  label: string;
+  emoji: string;
+  description: string;
+};
+
+const recipientOptions: RecipientOption[] = [
+  { id: 'mom', label: 'Mom', emoji: '🌸', description: 'Add a hug in satin ribbon' },
+  { id: 'dad', label: 'Dad', emoji: '🎩', description: 'Pair it with their evening chai' },
+  { id: 'friend', label: 'Friend', emoji: '🤝', description: 'Treat your favourite co-conspirator' },
+  { id: 'girlfriend', label: 'Girlfriend', emoji: '💐', description: 'Sweeten tonight’s love note' },
+  { id: 'boyfriend', label: 'Boyfriend', emoji: '🎧', description: 'Cue the midnight snack playlist' },
+  { id: 'spouse', label: 'Spouse', emoji: '💍', description: 'Celebrate the forever kind of love' },
+  { id: 'custom', label: 'Custom', emoji: '📝', description: 'Use the name they love most' },
 ];
+
+const personaVisuals: Record<GiftRecipientType, {
+  idleBg: string;
+  selectedBg: string;
+  accent: string;
+  emojiBg: string;
+  shadow: string;
+}> = {
+  mom: {
+    idleBg: 'rgba(255, 247, 242, 0.95)',
+    selectedBg: 'linear-gradient(145deg, rgba(248, 227, 201, 0.96), rgba(240, 196, 155, 0.88))',
+    accent: '#E0A96D',
+    emojiBg: 'rgba(224, 169, 109, 0.16)',
+    shadow: '0 18px 36px rgba(224, 169, 109, 0.28)',
+  },
+  dad: {
+    idleBg: 'rgba(252, 244, 236, 0.92)',
+    selectedBg: 'linear-gradient(145deg, rgba(236, 209, 179, 0.95), rgba(205, 155, 105, 0.82))',
+    accent: '#C08C5C',
+    emojiBg: 'rgba(192, 140, 92, 0.16)',
+    shadow: '0 18px 36px rgba(192, 140, 92, 0.28)',
+  },
+  friend: {
+    idleBg: 'rgba(253, 245, 232, 0.94)',
+    selectedBg: 'linear-gradient(145deg, rgba(245, 216, 176, 0.95), rgba(214, 163, 110, 0.82))',
+    accent: '#B88958',
+    emojiBg: 'rgba(184, 137, 88, 0.16)',
+    shadow: '0 18px 36px rgba(184, 137, 88, 0.28)',
+  },
+  girlfriend: {
+    idleBg: 'rgba(255, 246, 247, 0.94)',
+    selectedBg: 'linear-gradient(145deg, rgba(252, 226, 232, 0.96), rgba(237, 183, 197, 0.84))',
+    accent: '#D9A2B0',
+    emojiBg: 'rgba(217, 162, 176, 0.18)',
+    shadow: '0 18px 36px rgba(217, 162, 176, 0.3)',
+  },
+  boyfriend: {
+    idleBg: 'rgba(243, 246, 255, 0.94)',
+    selectedBg: 'linear-gradient(145deg, rgba(220, 231, 255, 0.95), rgba(167, 190, 238, 0.85))',
+    accent: '#9FB4E0',
+    emojiBg: 'rgba(159, 180, 224, 0.2)',
+    shadow: '0 18px 36px rgba(159, 180, 224, 0.28)',
+  },
+  spouse: {
+    idleBg: 'rgba(250, 244, 255, 0.94)',
+    selectedBg: 'linear-gradient(145deg, rgba(235, 220, 251, 0.95), rgba(197, 169, 229, 0.84))',
+    accent: '#B897D9',
+    emojiBg: 'rgba(184, 151, 217, 0.18)',
+    shadow: '0 18px 36px rgba(184, 151, 217, 0.3)',
+  },
+  custom: {
+    idleBg: 'rgba(242, 248, 246, 0.94)',
+    selectedBg: 'linear-gradient(145deg, rgba(220, 237, 232, 0.95), rgba(178, 211, 199, 0.84))',
+    accent: '#8AA8A1',
+    emojiBg: 'rgba(138, 168, 161, 0.2)',
+    shadow: '0 18px 36px rgba(138, 168, 161, 0.28)',
+  },
+};
 
 const fieldBaseClass =
   'mt-2 w-full rounded-[8px] border border-[rgba(58,45,36,0.12)] bg-[#FFF9F4] px-4 py-3 text-sm text-[#3B2B1A] placeholder:text-[#B9AFA6] shadow-[inset_0_1px_2px_rgba(58,45,36,0.04)] transition-[border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[#CFA676] focus-visible:shadow-[0_0_0_4px_rgba(226,185,127,0.18)]';
 
-const personaHoverShadow = '0 6px 18px rgba(30,20,10,0.06)';
 
 function isAddressEmpty(address: GiftAddress) {
   return !address.fullName.trim()
@@ -45,6 +109,7 @@ type GiftFormProps = {
   onFlowComplete?: () => void;
   headingId?: string;
   scrollParentRef?: RefObject<HTMLElement | null>;
+  giftId?: string | null;
 };
 
 function buildInitialForm(addressOverride?: GiftAddress): GiftFormState {
@@ -95,55 +160,61 @@ function useDebouncedValue<T>(value: T, delay: number): T {
   return debounced;
 }
 
-export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, headingId, scrollParentRef }: GiftFormProps) {
+export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, headingId, scrollParentRef, giftId }: GiftFormProps) {
   const navigate = useNavigate();
   const isTablet = useMedia(1023);
-  const { user } = useAuth();
+  const { setCart } = useCart();
   const formRootRef = useRef<HTMLDivElement | null>(null);
   const internalScrollRef = useRef<HTMLDivElement | null>(null);
   const personaButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const cachedAddressRef = useRef<GiftAddress | null>(null);
+  const saveTimeoutRef = useRef<number | null>(null);
+  const indicatorTimeoutRef = useRef<number | null>(null);
+  const hasUserEditedAddress = useRef(false);
   const [hydrated, setHydrated] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [form, setForm] = useState<GiftFormState>(() => buildInitialForm()); // Local state keeps inputs stable to avoid caret jumps.
   const [errors, setErrors] = useState<FormErrors>({});
   const [announcement, setAnnouncement] = useState('');
+  const [addressStatus, setAddressStatus] = useState<'idle' | 'dirty' | 'saved'>('idle');
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const activeGiftId = giftId ?? box?.key ?? 'default';
 
   useEffect(() => {
     let cancelled = false;
+    setHydrated(false);
+    cachedAddressRef.current = null;
+    hasUserEditedAddress.current = false;
+    setAddressStatus('idle');
+
     (async () => {
-      const cached = await readStoredAddress();
-      if (cancelled) return;
-      if (cached) {
-        cachedAddressRef.current = cached;
-        if (!isAddressEmpty(cached)) {
-          setForm(previous => ({
-            ...previous,
-            address: { ...cached },
-          }));
-        }
+      if (!activeGiftId) {
+        setHydrated(true);
+        return;
+      }
+      const cached = await readStoredAddress(activeGiftId);
+      if (cancelled) {
+        return;
+      }
+      if (cached && !isAddressEmpty(cached)) {
+        const hydratedAddress = { ...cached };
+        cachedAddressRef.current = hydratedAddress;
+        setForm(buildInitialForm(hydratedAddress));
+        setAddressStatus('saved');
+      } else {
+        const emptyAddress = getEmptyAddress();
+        cachedAddressRef.current = emptyAddress;
+        setForm(buildInitialForm(emptyAddress));
+        setAddressStatus('idle');
       }
       setHydrated(true);
     })();
+
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const cached = cachedAddressRef.current;
-    if (!cached || isAddressEmpty(cached)) {
-      return;
-    }
-    if (import.meta.env.DEV && isAddressEmpty(form.address)) {
-      console.warn('GiftForm: persisted address was lost after hydration. Reapplying cached values.');
-      setForm(previous => ({
-        ...previous,
-        address: { ...cached },
-      }));
-    }
-  }, [form.address, hydrated]);
+  }, [activeGiftId]);
 
   const debouncedSender = useDebouncedValue(form.senderName, 220);
   const debouncedCustomRecipient = useDebouncedValue(form.customRecipient, 220);
@@ -154,36 +225,86 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
   }, [activeStep]);
 
   useEffect(() => {
-    if (!hydrated) {
+    if (addressStatus !== 'saved') {
       return;
     }
-    persistGiftAddress(form.address);
-    cachedAddressRef.current = form.address;
-  }, [form.address, hydrated]);
+    if (indicatorTimeoutRef.current) {
+      window.clearTimeout(indicatorTimeoutRef.current);
+    }
+    indicatorTimeoutRef.current = window.setTimeout(() => {
+      setAddressStatus('idle');
+      indicatorTimeoutRef.current = null;
+    }, 2200);
+    return () => {
+      if (indicatorTimeoutRef.current) {
+        window.clearTimeout(indicatorTimeoutRef.current);
+        indicatorTimeoutRef.current = null;
+      }
+    };
+  }, [addressStatus]);
+
+  useEffect(() => () => {
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+    if (indicatorTimeoutRef.current) {
+      window.clearTimeout(indicatorTimeoutRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || !activeGiftId) {
+      return;
+    }
+    if (saveTimeoutRef.current) {
+      window.clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = window.setTimeout(() => {
+      persistGiftAddress(activeGiftId, form.address);
+      cachedAddressRef.current = form.address;
+      if (hasUserEditedAddress.current) {
+        setAddressStatus('saved');
+        hasUserEditedAddress.current = false;
+      }
+    }, 240);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+    };
+  }, [form.address, hydrated, activeGiftId]);
 
   useEffect(() => {
     const scroller = scrollParentRef?.current ?? internalScrollRef.current;
     if (scroller) {
-      if (typeof scroller.scrollTo === 'function') {
-        scroller.scrollTo({ top: 0, behavior: 'smooth' });
-      } else {
-        scroller.scrollTop = 0;
-      }
-    }
-
-    const rootNode = formRootRef.current;
-    if (!rootNode) {
-      return;
-    }
-    const currentStepNode = rootNode.querySelector<HTMLElement>(`[data-step="${activeStep}"] [data-step-focus="true"]`);
-    if (currentStepNode) {
       window.requestAnimationFrame(() => {
-        currentStepNode.focus({ preventScroll: true });
+        if (typeof scroller.scrollTo === 'function') {
+          scroller.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          scroller.scrollTop = 0;
+        }
       });
     }
+
+    window.requestAnimationFrame(() => {
+      const rootNode = formRootRef.current;
+      if (!rootNode) {
+        return;
+      }
+      const currentStepNode = rootNode.querySelector<HTMLElement>(`[data-step="${activeStep}"] [data-step-focus="true"]`);
+      currentStepNode?.focus({ preventScroll: true });
+    });
   }, [activeStep, scrollParentRef]);
 
   const handleAddressChange = useCallback((updates: Partial<GiftAddress>) => {
+    hasUserEditedAddress.current = true;
+    if (indicatorTimeoutRef.current) {
+      window.clearTimeout(indicatorTimeoutRef.current);
+      indicatorTimeoutRef.current = null;
+    }
+    setAddressStatus('dirty');
     setForm(previous => ({
       ...previous,
       address: {
@@ -203,8 +324,12 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
   const resetFlow = useCallback(() => {
     setActiveStep(0);
     setErrors({});
-    setForm(buildInitialForm(cachedAddressRef.current ?? undefined));
-  }, [cachedAddressRef]);
+    setForm(() => ({
+      ...buildInitialForm(cachedAddressRef.current ?? undefined),
+      address: cachedAddressRef.current ? { ...cachedAddressRef.current } : getEmptyAddress(),
+    }));
+    setAddressStatus(cachedAddressRef.current && !isAddressEmpty(cachedAddressRef.current) ? 'saved' : 'idle');
+  }, []);
 
   const recipientDisplayName = useMemo(() => {
     if (form.recipientType === 'custom') {
@@ -260,30 +385,6 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
     setActiveStep(previous => Math.max(0, previous - 1));
   }, [activeStep, onRequestClose, resetFlow]);
 
-  const giftCart = useMemo(() => {
-    if (!box) return {};
-    return { [box.key]: 1 } as Record<string, number>;
-  }, [box]);
-
-  const giftReturnPath = useMemo(() => {
-    if (typeof window !== 'undefined') {
-      return window.location.pathname;
-    }
-    if (mode === 'page' && box) {
-      return `/gift/${box.key}`;
-    }
-    return '/gift';
-  }, [box, mode]);
-
-  const handleReturnToCart = useCallback(() => {
-    if (mode === 'modal') {
-      onRequestClose({ canceled: true });
-      resetFlow();
-      return;
-    }
-    navigate('/cookies');
-  }, [mode, navigate, onRequestClose, resetFlow]);
-
   const giftOrderData = useMemo(() => {
     if (!box) return undefined;
     const recipientName = form.recipientType === 'custom' && form.customRecipient.trim()
@@ -301,6 +402,67 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
       address: form.address,
     };
   }, [box, form.address, form.customRecipient, form.instructions, form.message, form.recipientType, form.senderName, recipientDisplayName]);
+
+  const addressSummary = useMemo(() => {
+    const { fullName, phone, line1, line2, city, pincode, landmark } = form.address;
+    const lines = [line1, line2, city, pincode].map(value => value?.trim()).filter(Boolean) as string[];
+    return {
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      lines,
+      landmark: landmark.trim(),
+    };
+  }, [form.address]);
+
+  const handleConfirmGift = useCallback(() => {
+    if (!box || !giftOrderData) {
+      setAddError('Complete the gift details before continuing.');
+      return;
+    }
+    setAddError(null);
+    setIsAddingToCart(true);
+
+    try {
+      const giftLineId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? `gift:${crypto.randomUUID()}`
+        : `gift:${box.key}:${Date.now()}`;
+
+      const giftMetadata: CartGiftDetails = {
+        boxKey: box.key,
+        boxTitle: box.title,
+        senderName: giftOrderData.senderName,
+        recipientType: giftOrderData.recipientType,
+        recipientName: giftOrderData.recipientName,
+        message: giftOrderData.message,
+        instructions: giftOrderData.instructions,
+        address: { ...giftOrderData.address },
+      };
+
+      setCart(prev => {
+        const next = { ...(prev as CartStateWithMeta) } as CartStateWithMeta;
+        next._meta = next._meta ? { ...next._meta } : undefined;
+        next[giftLineId] = 1;
+        const meta = (next._meta ??= {});
+        meta[giftLineId] = {
+          type: 'gift',
+          name: box.title,
+          price: box.price,
+          image: box.previewImage,
+          gift: giftMetadata,
+        };
+        return next as unknown as typeof prev;
+      });
+
+      onFlowComplete?.();
+      resetFlow();
+      if (mode === 'modal') {
+        onRequestClose();
+      }
+      navigate(`/checkout?from=gift&giftId=${encodeURIComponent(box.key)}`);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  }, [box, giftOrderData, mode, navigate, onFlowComplete, onRequestClose, resetFlow, setCart]);
 
   const handlePersonaClick = useCallback((recipient: GiftRecipientType) => {
     handleFormChange({ recipientType: recipient, customRecipient: recipient === 'custom' ? form.customRecipient : '' });
@@ -367,9 +529,10 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                       Select a persona to personalise their handwritten note.
                     </p>
                   </header>
-                  <div className="grid gap-3 md:grid-cols-3" role="radiogroup" aria-required="true">
+                  <div className="grid md:grid-cols-3" role="radiogroup" aria-required="true" style={{ gap: 'var(--space-sm)' }}>
                     {recipientOptions.map((option, index) => {
                       const isSelected = form.recipientType === option.id;
+                      const personaTheme = personaVisuals[option.id] ?? personaVisuals.mom;
                       return (
                         <button
                           key={option.id}
@@ -383,26 +546,37 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                             personaButtonRefs.current[index] = element;
                           }}
                           data-step-focus={isSelected ? 'true' : undefined}
-                          className={`relative flex h-full flex-col items-start gap-3 rounded-[14px] border border-transparent bg-[#FFF6F0] p-4 text-left transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(80,45,20,0.24)] hover:-translate-y-1 ${
-                            isSelected ? 'bg-[#EED3B7]' : 'hover:bg-[#FBEDE1]'
-                          }`}
+                          className="group relative flex h-full min-h-[150px] flex-col items-center justify-center gap-3 text-center text-[#5C4632] hover:-translate-y-[2px] active:translate-y-[0px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[rgba(224,169,109,0.45)]"
                           style={{
-                            boxShadow: isSelected
-                              ? `inset 0 1px 0 rgba(255,255,255,0.65), 0 0 0 2px rgba(80,45,20,0.2), ${personaHoverShadow}`
-                              : personaHoverShadow,
+                            borderRadius: 'var(--radius-md)',
+                            padding: 'var(--space-lg)',
+                            border: isSelected ? `1px solid ${personaTheme.accent}` : '1px solid transparent',
+                            background: isSelected ? personaTheme.selectedBg : personaTheme.idleBg,
+                            boxShadow: isSelected ? personaTheme.shadow : 'var(--shadow-light)',
+                            transform: isSelected ? 'translateY(-2px)' : undefined,
+                            transition: 'transform var(--duration-small) ease, box-shadow var(--duration-small) ease, background var(--duration-small) ease, border-color var(--duration-small) ease',
                           }}
                         >
-                          <span aria-hidden="true" className="text-[28px] leading-none">
+                          <span
+                            aria-hidden="true"
+                            className="flex h-14 w-14 items-center justify-center rounded-full text-3xl"
+                            style={{
+                              background: isSelected ? personaTheme.accent : personaTheme.emojiBg,
+                              color: isSelected ? '#3B2B1A' : '#5C4632',
+                              transition: 'background var(--duration-small) ease, transform var(--duration-small) ease',
+                            }}
+                          >
                             {option.emoji}
                           </span>
-                          <span
-                            className={`text-sm font-medium tracking-[0.02em] ${
-                              isSelected ? 'text-[#3B2B1A]' : 'text-[#6B5E57]'
-                            }`}
-                          >
+                          <span className="text-[15px] font-semibold tracking-[0.01em] text-[#5C4632]">
                             {option.label}
                           </span>
-                          <span className="text-xs text-[#6B5E57]">Tap to select</span>
+                          <span
+                            className="text-xs leading-relaxed"
+                            style={{ color: isSelected ? '#6B5136' : '#7B6651' }}
+                          >
+                            {option.description}
+                          </span>
                         </button>
                       );
                     })}
@@ -510,11 +684,31 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
               {activeStep === 2 && (
                 <section aria-label="Delivery details" className="space-y-6 md:space-y-8" data-step="2">
                   <header className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Step 3</p>
-                    <h2 className="text-[1.9rem] font-semibold text-[#3B2B1A]" style={{ fontFamily: '"Playfair Display", serif' }}>
-                      Where should we send it?
-                    </h2>
-                    <p className="text-sm text-[#6B5E57]">We ship nationwide with overnight couriers.</p>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                      <div className="space-y-2">
+                        <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Step 3</p>
+                        <h2 className="text-[1.9rem] font-semibold text-[#3B2B1A]" style={{ fontFamily: '"Playfair Display", serif' }}>
+                          Where should we send it?
+                        </h2>
+                        <p className="text-sm text-[#6B5E57]">We ship nationwide with overnight couriers.</p>
+                      </div>
+                      <AnimatePresence>
+                        {addressStatus !== 'idle' && (
+                          <motion.span
+                            key={addressStatus}
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -6 }}
+                            transition={{ duration: 0.2 }}
+                            className={`self-start rounded-full px-3 py-1 text-xs font-medium ${
+                              addressStatus === 'dirty' ? 'bg-[#FCE8D6] text-[#C7803A]' : 'bg-[#E4F6E8] text-[#4C7A4F]'
+                            }`}
+                          >
+                            {addressStatus === 'dirty' ? 'Not saved yet' : 'Address saved'}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </header>
                   <div className="grid gap-5" role="group" aria-describedby="delivery-hint">
                     <span id="delivery-hint" className="text-xs text-[#8E7360]">
@@ -633,9 +827,9 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                   <header className="space-y-2">
                     <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Step 4</p>
                     <h2 className="text-[1.9rem] font-semibold text-[#3B2B1A]" style={{ fontFamily: '"Playfair Display", serif' }}>
-                      Summary & payment
+                      Summary & basket
                     </h2>
-                    <p className="text-sm text-[#6B5E57]">Review the details before confirming payment.</p>
+                    <p className="text-sm text-[#6B5E57]">Review every detail, then add this gift to your basket to checkout alongside your cookies.</p>
                   </header>
                   {box ? (
                     <div className="space-y-6">
@@ -652,39 +846,67 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                           <p className="mt-4 text-sm text-[#6B5E57]">“{form.message}”</p>
                         )}
                       </article>
-                      <StripeCheckoutFlow
-                        cart={giftCart}
-                        totalAmount={box.price}
-                        user={user}
-                        shippingAddress={form.address}
-                        extraOrderData={giftOrderData}
-                        onCartCleared={() => undefined}
-                        onPaymentCompletedChange={completed => {
-                          if (completed) {
-                            onFlowComplete?.();
-                            if (mode === 'modal') {
-                              onRequestClose();
-                            }
-                            resetFlow();
-                          }
-                        }}
-                        initializeButtonLabel="Pay Securely"
-                        payButtonLabel="Pay Securely"
-                        returnPath={giftReturnPath}
-                        successPath="/order-success"
-                        onReturnToCart={handleReturnToCart}
-                      />
+                    <div className="space-y-4 rounded-[14px] border border-[rgba(226,185,127,0.24)] bg-[#FFF8F1] px-5 py-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.28em] text-[#8E7360]">Deliver to</p>
+                        <div className="mt-2 space-y-1 text-sm text-[#3B2B1A]">
+                          <p className="font-semibold">{addressSummary.fullName || 'Recipient name pending'}</p>
+                          {addressSummary.lines.length > 0 ? (
+                            <ul className="list-disc space-y-1 pl-5 text-xs text-[#6B5E57]">
+                              {addressSummary.lines.map(line => (
+                                <li key={line}>{line}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-xs text-[#9A8F86]">Address will follow once you confirm.</p>
+                          )}
+                          {addressSummary.landmark ? (
+                            <p className="text-xs text-[#6B5E57]">Landmark: {addressSummary.landmark}</p>
+                          ) : null}
+                          {addressSummary.phone ? (
+                            <p className="text-xs text-[#6B5E57]">Courier contact: {addressSummary.phone}</p>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.28em] text-[#8E7360]">From</p>
+                        <p className="mt-2 text-sm text-[#3B2B1A]">{form.senderName.trim() || 'Sender name pending'}</p>
+                      </div>
+                      {giftOrderData?.instructions ? (
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.28em] text-[#8E7360]">Special instructions</p>
+                          <p className="mt-2 text-xs text-[#6B5E57] leading-relaxed">{giftOrderData.instructions}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                    {addError ? (
+                      <div className="rounded-[12px] border border-[#F3B3A8] bg-[#FDE8E6] px-4 py-3 text-xs font-medium text-[#9A291E]" role="alert">
+                        {addError}
+                      </div>
+                    ) : null}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <button
+                        type="button"
+                        onClick={handleConfirmGift}
+                        disabled={isAddingToCart}
+                        data-step-focus="true"
+                        className={`inline-flex w-full items-center justify-center rounded-[12px] bg-[#3B2B1A] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_32px_rgba(59,43,26,0.18)] transition-transform duration-150 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] sm:w-auto ${
+                          isAddingToCart ? 'cursor-progress opacity-80' : ''
+                        }`}
+                      >
+                        {isAddingToCart ? 'Adding to basket…' : 'Add to basket & continue'}
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
                           onRequestClose({ canceled: true });
                           resetFlow();
                         }}
-                        data-step-focus="true"
-                        className="text-sm font-medium text-[#6B5E57] transition-colors duration-200 hover:text-[#2F2116] active:text-[#2F2116] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(226,185,127,0.32)] cursor-pointer no-underline"
+                        className="inline-flex w-full items-center justify-center rounded-[12px] border border-[rgba(226,185,127,0.34)] bg-white px-6 py-3 text-sm font-semibold text-[#6B5E57] transition-colors duration-150 hover:bg-[#FFF1E5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(226,185,127,0.32)] sm:w-auto"
                       >
-                        Cancel gift creation
+                        Cancel gift
                       </button>
+                    </div>
                     </div>
                   ) : (
                     <p className="rounded-[14px] border border-dashed border-[rgba(226,185,127,0.44)] bg-white/80 px-5 py-6 text-center text-sm text-[#6B5E57] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">

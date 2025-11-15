@@ -1,6 +1,7 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { GoldenSeasonBox } from '@/data/goldenSeasonBoxes';
+import { resolveImage } from '@/lib/goldenSeasonImageResolver';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1548365328-5b79c2ef0003?auto=format&fit=crop&w=640&q=80';
 
@@ -31,7 +32,12 @@ function GiftPreviewCardComponent({
   const note = message || 'Two warm lines will appear here once you add them.';
   const deliveryHint = instructions ? `Note for courier: ${instructions}` : 'Add a delivery note so we can plan the surprise.';
 
-  const imageSrc = useMemo(() => box?.previewImage ?? FALLBACK_IMAGE, [box?.previewImage]);
+  const imageSrc = useMemo(() => {
+    if (!box) {
+      return FALLBACK_IMAGE;
+    }
+    return resolveImage(box.key, 'product') || FALLBACK_IMAGE;
+  }, [box]);
   const imageAlt = useMemo(() => box?.previewAlt ?? 'Gift box preview', [box?.previewAlt]);
 
   return (
