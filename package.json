@@ -11,7 +11,12 @@
     "test": "vitest",
     "prepare": "husky",
     "lint:fix": "eslint . --fix",
-    "test:staged": "vitest related --run"
+    "test:staged": "vitest related --run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@heroui/react": "^2.8.5",
@@ -37,6 +42,7 @@
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@eslint/js": "^9.30.1",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
