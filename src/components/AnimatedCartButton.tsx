@@ -21,6 +21,7 @@ const AnimatedCartButton: React.FC<AnimatedCartButtonProps> = ({
         onClick={onClick}
         aria-label={`My Cart - ${quantity} item${quantity !== 1 ? 's' : ''}`}
         type="button"
+        data-testid="cart-button"
       >
         <svg 
           className="icon-cart" 
@@ -38,7 +39,9 @@ const AnimatedCartButton: React.FC<AnimatedCartButtonProps> = ({
         </svg>
         <span className="cart-text">My Cart</span>
       </button>
-      {quantity > 0 && <span className="quantity-badge">{quantity}</span>}
+      {quantity > 0 && (
+        <span className="quantity-badge" data-testid="cart-count">{quantity}</span>
+      )}
     </StyledWrapper>
   );
 };

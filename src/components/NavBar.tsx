@@ -14,7 +14,7 @@ import { checkoutPageEnabled } from '@/config/features';
 import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
 
 export default function NavBar() {
-  const { user, loading, signOutUser } = useAuth();
+  const { user, loading, authDisabled, signOutUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { cart, setCart } = useCart();
@@ -103,6 +103,9 @@ export default function NavBar() {
     return anchorHash ? `${base}${anchorHash}` : base;
   };
 
+  const allowGuestExperience = authDisabled && !user;
+  const showSignedInUi = Boolean(user) || allowGuestExperience;
+
   return (
     <>
       <nav className="bg-gradient-to-r from-[#fffaf3] to-[#f8eddc] shadow-sm py-3.5 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-50 font-inter antialiased border-b border-[#dba661]/20">
@@ -116,47 +119,51 @@ export default function NavBar() {
 
       {/* Navigation Links */}
       <div className="flex items-center gap-2.5 sm:gap-3.5">
-        {/* Hide links while auth loading or when user is not logged in */}
-        {loading || !user ? (
-          <Link
-            to="/signin"
-            className="px-5 py-2.5 rounded-full text-[color:#5b3a20] bg-[color:#f8eddc] font-semibold transition-all duration-200 text-base hover:shadow-[0_2px_8px_rgba(219,166,97,0.25)] hover:-translate-y-0.5"
-          >
-            Sign In
-          </Link>
-        ) : (
+        {/* Hide the nav only while real auth is resolving */}
+        {loading && !authDisabled ? (
+          <span className="px-5 py-2.5 rounded-full text-[color:#5b3a20] bg-[color:#f8eddc] font-semibold opacity-75 select-none">
+            Loading…
+          </span>
+        ) : showSignedInUi ? (
           <>
             <HomeNavLink to="/">
               <span>Home</span>
             </HomeNavLink>
-            
+
             {/* Animated Cart Button */}
             <AnimatedCartButton 
               onClick={() => setShowCart(true)}
               quantity={cartBadgeCount}
             />
 
-            {/* Signed-in identity avatar (hover to reveal email) */}
+            {/* Identity avatar (real user or guest placeholder) */}
             <div className="relative group select-none">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-[#f8eddc]" />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
-                  {(user?.email || 'C').slice(0,1).toUpperCase()}
+                  {(user?.email || 'G').slice(0,1).toUpperCase()}
                 </div>
               )}
               <div className="absolute -left-2 top-11 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white text-gray-700 text-xs px-3 py-2 rounded-xl shadow-md whitespace-nowrap border border-[#dba661]/20">
-                {user?.email || 'Signed in'}
+                {user?.email || 'Guest checkout enabled'}
               </div>
             </div>
 
-            {/* Animated Sign Out Button */}
-            <AnimatedSignOutButton onClick={handleSignOutClick} />
+            {/* Animated Sign Out Button - only when a real user session exists */}
+            {user ? <AnimatedSignOutButton onClick={handleSignOutClick} /> : null}
           </>
+        ) : (
+          <Link
+            to="/signin"
+            className="px-5 py-2.5 rounded-full text-[color:#5b3a20] bg-[color:#f8eddc] font-semibold transition-all duration-200 text-base hover:shadow-[0_2px_8px_rgba(219,166,97,0.25)] hover:-translate-y-0.5"
+          >
+            Sign In
+          </Link>
         )}
       </div>
       </nav>
-      {user && (
+      {(user || authDisabled) && (
         <CartPreviewModal
           isOpen={showCart}
           onClose={() => setShowCart(false)}

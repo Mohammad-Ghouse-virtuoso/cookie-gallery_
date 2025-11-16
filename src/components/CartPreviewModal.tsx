@@ -215,6 +215,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
           animation: `cartModalIn 240ms ${EASING}`,
           maxHeight: '100vh',
         }}
+        data-testid="cart-modal"
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 border-b border-[rgba(226,185,127,0.25)] px-5 py-4">
@@ -274,6 +275,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                       key={item.id}
                       id={domId}
                       className="flex gap-3 rounded-[18px] border border-[rgba(226,185,127,0.16)] bg-white px-4 py-4 shadow-[0_10px_24px_rgba(59,43,26,0.08)] animate-[cartItemEnter_220ms_cubic-bezier(0.34,1.56,0.64,1)_both]"
+                      data-testid={`cart-preview-item-${item.id}`}
                     >
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-[14px]" aria-hidden="true">
                         <div
@@ -326,10 +328,16 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                                   ? 'cursor-not-allowed border-[#82E7A6]/60 text-[#82E7A6]/80'
                                   : 'border-[#0DB04B] text-[#0DB04B] hover:bg-[#0DB04B] hover:text-white'
                               }`}
+                              data-testid={`cart-preview-decrement-${item.id}`}
                             >
                               −
                             </button>
-                            <span className="min-w-[2rem] text-center text-sm font-semibold text-[#2F2A1E]">{item.qty}</span>
+                            <span
+                              className="min-w-[2rem] text-center text-sm font-semibold text-[#2F2A1E]"
+                              data-testid={`cart-preview-quantity-${item.id}`}
+                            >
+                              {item.qty}
+                            </span>
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(item.id, Math.min(item.qty + 1, MAX_ITEM_QUANTITY))}
@@ -340,6 +348,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                                   ? 'cursor-not-allowed border-[#82E7A6]/60 text-[#82E7A6]/80'
                                   : 'border-[#0DB04B] text-[#0DB04B] hover:bg-[#0DB04B] hover:text-white'
                               }`}
+                              data-testid={`cart-preview-increment-${item.id}`}
                             >
                               +
                             </button>
@@ -352,7 +361,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
               </ul>
             </div>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[16px] border border-[rgba(226,185,127,0.35)] bg-[#FFF5E9] px-5 py-8 text-center">
+            <div className="flex h-full flex-col items-center justify-center gap-3 rounded-[16px] border border-[rgba(226,185,127,0.35)] bg-[#FFF5E9] px-5 py-8 text-center" data-testid="cart-preview-empty">
               <p className="text-sm font-semibold text-[#3B2B1A]">Your cart is empty.</p>
               <button
                 type="button"
@@ -428,6 +437,7 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                   checkoutDisabled ? 'cursor-not-allowed opacity-60 hover:-translate-y-0' : 'hover:-translate-y-0.5'
                 }`}
                 aria-label="Proceed to payment"
+                data-testid="cart-preview-checkout"
               >
                 <span aria-hidden="true">→</span>
               </button>

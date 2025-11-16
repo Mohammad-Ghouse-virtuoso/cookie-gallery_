@@ -325,8 +325,8 @@ export default function CheckoutPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#FBF5EE] pb-16">
-      <div className="mx-auto w-full max-w-6xl px-5 pt-10 lg:px-8">
+    <main className="min-h-screen bg-[#FBF5EE] pb-16" data-testid="checkout-root">
+      <div className="mx-auto w-full max-w-6xl px-5 pt-10 lg:px-8" data-testid="checkout-container">
         <header className="space-y-3">
           <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Checkout</p>
           <h1
@@ -350,7 +350,11 @@ export default function CheckoutPage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
-            <section className="rounded-[18px] border border-[rgba(226,185,127,0.28)] bg-white p-6 shadow-[0_16px_32px_rgba(59,43,26,0.08)]" aria-live="polite">
+            <section
+              className="rounded-[18px] border border-[rgba(226,185,127,0.28)] bg-white p-6 shadow-[0_16px_32px_rgba(59,43,26,0.08)]"
+              aria-live="polite"
+              data-testid="order-summary"
+            >
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[#3B2B1A]">Order summary</h2>
                 <span className="rounded-full bg-[#FCEFE3] px-3 py-1 text-xs font-semibold text-[#C47A41]">{orderLines.length} items</span>
@@ -375,7 +379,11 @@ export default function CheckoutPage() {
                       ? [giftInfo.address.city, giftInfo.address.pincode].filter(Boolean).join(', ')
                       : null;
                     return (
-                      <li key={line.id} className="flex items-start gap-4 rounded-[14px] border border-[rgba(226,185,127,0.24)] bg-[#FFF9F4] p-4">
+                      <li
+                        key={line.id}
+                        className="flex items-start gap-4 rounded-[14px] border border-[rgba(226,185,127,0.24)] bg-[#FFF9F4] p-4"
+                        data-testid="cart-item"
+                      >
                         {displayImage ? (
                           <img
                             src={displayImage}
@@ -618,7 +626,10 @@ export default function CheckoutPage() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-8">
-            <section className="rounded-[18px] border border-[rgba(226,185,127,0.28)] bg-white p-6 shadow-[0_16px_32px_rgba(59,43,26,0.08)]">
+            <section
+              className="rounded-[18px] border border-[rgba(226,185,127,0.28)] bg-white p-6 shadow-[0_16px_32px_rgba(59,43,26,0.08)]"
+              data-testid="payment-section"
+            >
               <h2 className="text-lg font-semibold text-[#3B2B1A]">Payment</h2>
               <p className="mt-1 text-xs text-[#6B5E57]">Payments are processed securely by Stripe.</p>
 

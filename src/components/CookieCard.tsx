@@ -21,6 +21,7 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
     <article
       id={cookie.id}
       className="cookie-card group bg-white flex flex-col h-full"
+      data-testid="cookie-item"
       style={{
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-light)',
@@ -116,6 +117,7 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
           aria-label={`Decrease quantity of ${cookie.name}`}
           disabled={quantity <= 0}
           type="button"
+          data-testid={`decrease-quantity-${cookie.id}`}
         >
           −
         </button>
@@ -127,7 +129,12 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
             minWidth: '3rem'
           }}
         >
-          <span className="text-lg font-semibold text-[#5b3a20]" aria-live="polite" aria-atomic="true">
+          <span
+            className="text-lg font-semibold text-[#5b3a20]"
+            aria-live="polite"
+            aria-atomic="true"
+            data-testid={`quantity-display-${cookie.id}`}
+          >
             {quantity}
           </span>
         </div>
@@ -156,6 +163,7 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
           aria-label={`Increase quantity of ${cookie.name}`}
           disabled={isMaxQuantity}
           type="button"
+          data-testid={`add-to-cart-${cookie.id}`}
         >
           +
         </button>

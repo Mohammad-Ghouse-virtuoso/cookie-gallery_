@@ -19,6 +19,22 @@ const firebaseConfig = {
 // Global variables provided by Canvas environment (if applicable)
 declare const __initial_auth_token: string | undefined;
 
+const detectE2EMode = (): boolean => {
+  if (import.meta.env.VITE_E2E === 'true') {
+    return true;
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      return window.sessionStorage.getItem('cg_e2e_mode') === 'true';
+    } catch {
+      return false;
+    }
+  }
+  return false;
+};
+
+const isE2ETestMode = detectE2EMode();
+
 // Define the shape of your AuthContext
 interface AuthContextType {
   user: User | null; // Firebase User object or null
@@ -45,10 +61,10 @@ async function getServerBootId(): Promise<string | null> {
 // Auth Provider Component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // True while auth state resolving
-  const [bootChecked, setBootChecked] = useState(false); // Becomes true after /health processed
-  const [reloadChecked, setReloadChecked] = useState(false); // ensures we process refresh policy exactly once
-  const [authDisabled, setAuthDisabled] = useState(false); // If Firebase config missing or init fails
+  const [loading, setLoading] = useState(!isE2ETestMode); // True while auth state resolving
+  const [bootChecked, setBootChecked] = useState(isE2ETestMode); // Becomes true after /health processed
+  const [reloadChecked, setReloadChecked] = useState(isE2ETestMode); // ensures we process refresh policy exactly once
+  const [authDisabled, setAuthDisabled] = useState(isE2ETestMode); // If Firebase config missing or init fails
 
   // Helper to verify minimal Firebase config presence (avoid throwing in dev)
   const hasConfig = Boolean(
@@ -60,6 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Detect backend restart and refresh auth once after reload
   useEffect(() => {
+    if (isE2ETestMode) {
+      setBootChecked(true);
+      return () => undefined;
+    }
+
     let mounted = true;
     (async () => {
       // If auth is disabled or no server configured, skip boot id checks to avoid noisy CORS errors in dev
@@ -87,6 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Enforce sign-out-on-refresh policy (to reset user like cart resets) once per browser load
   useEffect(() => {
+    if (isE2ETestMode) return;
     if (reloadChecked) return;
     const already = sessionStorage.getItem('cg_reload_done');
     const doReset = !already; // first load after refresh
@@ -101,6 +123,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Set persistence once
   useEffect(() => {
+    if (isE2ETestMode) return;
     if (!hasConfig) return; // no-op when config missing
     try {
       // Initialize Firebase app once if not already
@@ -117,6 +140,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [hasConfig]);
 
   useEffect(() => {
+    if (isE2ETestMode) {
+      setUser(null);
+      setLoading(false);
+      setAuthDisabled(true);
+      return;
+    }
+
     if (!hasConfig) {
       // No Firebase config: disable auth and end loading to unblock UI
       setAuthDisabled(true);

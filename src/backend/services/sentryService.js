@@ -86,6 +86,9 @@ function initSentry(app) {
  * Express error handler middleware
  */
 function sentryErrorHandler() {
+  if (!Sentry.Handlers) {
+    return (err, req, res, next) => next(err);
+  }
   return Sentry.Handlers.errorHandler({
     shouldHandleError(error) {
       // Only send errors with status 500+
@@ -98,6 +101,9 @@ function sentryErrorHandler() {
  * Request handler middleware
  */
 function sentryRequestHandler() {
+  if (!Sentry.Handlers) {
+    return (req, res, next) => next();
+  }
   return Sentry.Handlers.requestHandler();
 }
 
@@ -105,6 +111,9 @@ function sentryRequestHandler() {
  * Tracing middleware
  */
 function sentryTracingHandler() {
+  if (!Sentry.Handlers) {
+    return (req, res, next) => next();
+  }
   return Sentry.Handlers.tracingHandler();
 }
 

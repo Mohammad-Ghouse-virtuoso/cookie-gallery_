@@ -11,7 +11,7 @@ import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
 
 export default function Checkout() {
   const { cart, setCart } = useCart();
-  const { user } = useAuth();
+  const { user, authDisabled } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -28,8 +28,8 @@ export default function Checkout() {
   }, []);
 
   useEffect(() => {
-    setShowLoginPrompt(!user);
-  }, [user]);
+    setShowLoginPrompt(!user && !authDisabled);
+  }, [authDisabled, user]);
 
   useEffect(() => {
     if (!checkoutAddress && !hasActiveOrder) {
@@ -139,6 +139,8 @@ export default function Checkout() {
     return details;
   }, [orderLines]);
 
+  const stripeUser = user ?? (authDisabled ? { uid: 'e2e-guest', email: 'e2e@cookie.gallery' } : null);
+
   useEffect(() => {
     if (orderLines.length === 0 && !hasActiveOrder && !paymentCompleted) {
       const timer = window.setTimeout(() => navigate('/'), 220);
@@ -174,7 +176,10 @@ export default function Checkout() {
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 rounded-[24px] border border-[rgba(226,185,127,0.24)] bg-white px-6 py-8 shadow-[0_24px_60px_rgba(59,43,26,0.08)] md:px-10 md:py-12">
+      <div
+        className="mx-auto flex w-full max-w-5xl flex-col gap-8 rounded-[24px] border border-[rgba(226,185,127,0.24)] bg-white px-6 py-8 shadow-[0_24px_60px_rgba(59,43,26,0.08)] md:px-10 md:py-12"
+        data-testid="checkout-container"
+      >
         <header className="space-y-2">
           <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Checkout</p>
           <h1 className="text-[2.5rem] font-semibold text-[#3B2B1A]" style={{ fontFamily: '"Playfair Display", serif' }}>
@@ -187,7 +192,10 @@ export default function Checkout() {
 
         <section className="grid gap-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
           <div className="space-y-6">
-            <article className="space-y-4 rounded-[18px] border border-[rgba(226,185,127,0.2)] bg-[#FFF8F1] p-6 shadow-[0_12px_28px_rgba(59,43,26,0.06)]">
+            <article
+              className="space-y-4 rounded-[18px] border border-[rgba(226,185,127,0.2)] bg-[#FFF8F1] p-6 shadow-[0_12px_28px_rgba(59,43,26,0.06)]"
+              data-testid="order-summary"
+            >
               <header className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[#3B2B1A]">Your cookies</h2>
                 <span className="rounded-full bg-[#3B2B1A] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-white">
@@ -207,6 +215,7 @@ export default function Checkout() {
                     <li
                       key={line.id}
                       className="flex items-center justify-between rounded-[14px] border border-[rgba(226,185,127,0.26)] bg-white px-4 py-3 shadow-[0_6px_14px_rgba(59,43,26,0.05)]"
+                      data-testid="cart-item"
                     >
                       <div className="flex items-center gap-4">
                         {displayImage ? (
@@ -277,7 +286,10 @@ export default function Checkout() {
             </article>
           </div>
 
-          <aside className="space-y-4 rounded-[18px] border border-[rgba(226,185,127,0.2)] bg-[#FFF6F0] p-6 shadow-[0_12px_28px_rgba(59,43,26,0.06)]">
+          <aside
+            className="space-y-4 rounded-[18px] border border-[rgba(226,185,127,0.2)] bg-[#FFF6F0] p-6 shadow-[0_12px_28px_rgba(59,43,26,0.06)]"
+            data-testid="payment-section"
+          >
             <h2 className="text-base font-semibold text-[#3B2B1A]">Secure payment</h2>
             <p className="text-xs text-[#6B5E57]">
               Payments are processed by Stripe. You’ll return here once the payment completes so we can confirm your order.
@@ -286,7 +298,7 @@ export default function Checkout() {
               cart={cartSnapshot}
               cartDetails={checkoutCartDetails}
               totalAmount={totalAmount}
-              user={user}
+              user={stripeUser}
               shippingAddress={checkoutAddress}
               onCartCleared={() => setCart({})}
               onPaymentCompletedChange={setPaymentCompleted}
@@ -300,6 +312,7 @@ export default function Checkout() {
               type="button"
               onClick={() => navigate('/cookies')}
               className="w-full rounded-[12px] border border-[rgba(226,185,127,0.34)] bg-white px-5 py-2.5 text-sm font-semibold text-[#6B5E57] transition-colors duration-200 hover:bg-[#FFF1E5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(226,185,127,0.32)]"
+              data-testid="back-to-catalogue"
             >
               Back to catalogue
             </button>
