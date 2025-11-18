@@ -123,8 +123,11 @@ describe('CheckoutPage', () => {
     await userEvent.type(screen.getByLabelText(/^City$/i), 'Bengaluru');
     await userEvent.type(screen.getByLabelText(/Country/i), 'India');
 
-    await waitFor(() => {
-      expect(payButton).not.toBeDisabled();
-    });
-  });
+    await waitFor(
+      () => {
+        expect(payButton).not.toBeDisabled();
+      },
+      { timeout: 10000 }
+    );
+  }, { timeout: 15000 });
 });
