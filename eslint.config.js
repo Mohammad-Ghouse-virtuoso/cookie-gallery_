@@ -5,6 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
+import playwright from 'eslint-plugin-playwright'
+
 export default tseslint.config([
   globalIgnores(['dist']),
   {
@@ -31,4 +33,13 @@ export default tseslint.config([
       'react-hooks/rules-of-hooks': 'warn'
     }
   },
+  {
+    files: ['**/*.spec.ts'],
+    ...playwright.configs['flat/recommended'],
+    rules: {
+        ...playwright.configs['flat/recommended'].rules,
+        'playwright/no-focused-test': 'error',
+        'playwright/no-skipped-test': 'warn'
+    }
+  }
 ])
