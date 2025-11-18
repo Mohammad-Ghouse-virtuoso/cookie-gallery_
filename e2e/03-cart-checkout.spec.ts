@@ -26,12 +26,14 @@ const openCartPreview = async (page: Page) => {
 test.describe('Shopping Cart', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/cookies');
-    await page.waitForLoadState('networkidle');
+    const addButton = page.locator('[data-testid^="add-to-cart-"]').first();
+    await expect(addButton).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/cookies/);
   });
 
   test('should add item to cart', async ({ page }) => {
     await addFirstCookieToCart(page);
+    await expect(page.locator('[data-testid="cart-count"]')).toHaveText('1');
   });
 
   test('should navigate to checkout from cart preview', async ({ page }) => {
@@ -44,8 +46,7 @@ test.describe('Shopping Cart', () => {
     ]);
 
     await expect(page).toHaveURL(/\/checkout/);
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('[data-testid="order-summary"]')).toBeVisible();
+    await expect(page.locator('[data-testid="order-summary"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('should display cart items on checkout page', async ({ page }) => {
@@ -88,14 +89,15 @@ test.describe('Shopping Cart', () => {
 test.describe('Checkout Process', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/cookies');
-    await page.waitForLoadState('networkidle');
+    const addButton = page.locator('[data-testid^="add-to-cart-"]').first();
+    await expect(addButton).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/cookies/);
     await addFirstCookieToCart(page);
     await Promise.all([
       page.waitForURL(/\/checkout/),
       page.goto('/checkout'),
     ]);
-    await page.waitForLoadState('networkidle');
+    await expect(page.locator('[data-testid="checkout-container"]')).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/checkout/);
   });
 
@@ -120,8 +122,7 @@ test.describe('Checkout Process', () => {
 test.describe('Order Success', () => {
   test('should display order success page', async ({ page }) => {
     await page.goto('/order-success');
-    await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/order-success/);
-    await expect(page.locator('text=/success|confirmed|complete|thank you/i').first()).toBeVisible();
+    await expect(page.locator('text=/success|confirmed|complete|thank you/i').first()).toBeVisible({ timeout: 10000 });
   });
 });

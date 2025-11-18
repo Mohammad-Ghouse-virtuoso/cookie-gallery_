@@ -19,7 +19,8 @@ test.beforeEach(async ({ page }) => {
 test.describe('Cookie Catalogue', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/cookies');
-    await page.waitForLoadState('networkidle');
+    const cookieItems = page.locator('[data-testid="cookie-item"]');
+    await expect(cookieItems.first()).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/cookies/);
   });
 
@@ -49,7 +50,8 @@ test.describe('Cookie Catalogue', () => {
 test.describe('Product Details', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/cookies');
-    await page.waitForLoadState('networkidle');
+    const viewDetailsButton = page.locator('button:has-text("View Details")').first();
+    await expect(viewDetailsButton).toBeVisible({ timeout: 10000 });
     await expect(page).toHaveURL(/\/cookies/);
   });
 
@@ -68,7 +70,6 @@ test.describe('Product Details', () => {
   test('should display product details on detail page', async ({ page }) => {
     const viewDetailsButton = page.locator('button:has-text("View Details")').first();
     await viewDetailsButton.click();
-    await page.waitForLoadState('networkidle');
 
     await expect(page.locator('[data-testid="product-title"], h1, h2').first()).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: /Ingredients & Nutrition/i })).toBeVisible();
@@ -78,9 +79,8 @@ test.describe('Product Details', () => {
 test.describe('Search and Filter', () => {
   test('should expose search and filter controls', async ({ page }) => {
     await page.goto('/cookies');
-    await page.waitForLoadState('networkidle');
-
-    await expect(page.locator('#cookie-search')).toBeVisible();
+    const searchInput = page.locator('#cookie-search');
+    await expect(searchInput).toBeVisible({ timeout: 10000 });
     // At least one dietary filter button should be present
     await expect(page.locator('[aria-label$="filter"]').first()).toBeVisible();
   });
