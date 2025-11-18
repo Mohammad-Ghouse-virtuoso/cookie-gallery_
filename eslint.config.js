@@ -1,14 +1,25 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
-import { globalIgnores } from 'eslint/config'
-
-import playwright from 'eslint-plugin-playwright'
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
+import playwright from 'eslint-plugin-playwright';
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  {
+    ignores: [
+      'dist/**',
+      'build/**',
+      'out/**',
+      'playwright-report/**',
+      'test-results/**',
+      'results/**',
+      'src/backend/**',
+      'node_modules/**',
+      '*.log',
+      'vite.log',
+    ],
+  },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -30,16 +41,17 @@ export default tseslint.config([
       // Relax fast-refresh only-export-components where shared utils/constants are exported from component files
       'react-refresh/only-export-components': 'off',
       // Make hard-to-fix hook warnings non-blocking for now
-      'react-hooks/rules-of-hooks': 'warn'
-    }
+      'react-hooks/rules-of-hooks': 'warn',
+    },
   },
   {
     files: ['**/*.spec.ts'],
     ...playwright.configs['flat/recommended'],
     rules: {
-        ...playwright.configs['flat/recommended'].rules,
-        'playwright/no-focused-test': 'error',
-        'playwright/no-skipped-test': 'warn'
-    }
-  }
-])
+      ...playwright.configs['flat/recommended'].rules,
+      'playwright/no-focused-test': 'error',
+      'playwright/no-skipped-test': 'warn',
+    },
+  },
+]);
+

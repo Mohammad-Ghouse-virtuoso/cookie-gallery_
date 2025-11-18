@@ -51,6 +51,17 @@ Thumbs.db
 *.sln
 *.swp
 
+# Playwright reports and traces
+playwright-report/
+test-results/
+results/
+
+# Vite build output
+dist
+
+# Log files
+vite.log
+
 # Documentation files (local notes)
 *.md
 !README.md
