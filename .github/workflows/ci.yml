@@ -36,6 +36,22 @@ jobs:
         cd src/backend
         npm ci
     
+    - name: Run backend tests (including contract tests)
+      run: npm run test:backend
+    
+    - name: Run E2E tests
+      run: npm run test:e2e
+      continue-on-error: true
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: |
+          test-results/
+          playwright-report/
+    
     - name: Check for security vulnerabilities
       run: npm audit --audit-level=high
       continue-on-error: true

@@ -5,16 +5,16 @@ describe('PaymentService', () => {
 
   beforeEach(() => {
     const mockDocRef = {
-      get: vi.fn(),
-      set: vi.fn()
+      get: jest.fn(),
+      set: jest.fn()
     };
     
     const mockCollection = {
-      doc: vi.fn(() => mockDocRef)
+      doc: jest.fn(() => mockDocRef)
     };
     
     mockAdminDb = {
-      collection: vi.fn(() => mockCollection)
+      collection: jest.fn(() => mockCollection)
     };
 
     paymentService = new PaymentService(mockAdminDb);

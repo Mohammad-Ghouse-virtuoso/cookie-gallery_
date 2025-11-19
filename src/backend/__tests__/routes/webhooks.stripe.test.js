@@ -37,45 +37,45 @@ describe('Stripe webhook route', () => {
     process.env.STRIPE_WEBHOOK_SECRET = stripeSecret;
     stripeMock = {
       webhooks: {
-        constructEvent: vi.fn(),
+        constructEvent: jest.fn(),
       },
     };
 
     const webhookDoc = {
-      get: vi.fn(() => Promise.resolve({ exists: false })),
-      set: vi.fn(() => Promise.resolve()),
+      get: jest.fn(() => Promise.resolve({ exists: false })),
+      set: jest.fn(() => Promise.resolve()),
     };
     const orderDoc = {
-      set: vi.fn(() => Promise.resolve()),
+      set: jest.fn(() => Promise.resolve()),
     };
     adminDbMock = {
-      collection: vi.fn(collectionName => {
+      collection: jest.fn(collectionName => {
         if (collectionName === 'webhook_events') {
           return {
-            doc: vi.fn(() => webhookDoc),
+            doc: jest.fn(() => webhookDoc),
           };
         }
         if (collectionName === 'orders_v2') {
           return {
-            doc: vi.fn(() => orderDoc),
+            doc: jest.fn(() => orderDoc),
           };
         }
         return {
-          doc: vi.fn(() => ({
-            get: vi.fn(() => Promise.resolve({ exists: false })),
-            set: vi.fn(() => Promise.resolve()),
+          doc: jest.fn(() => ({
+            get: jest.fn(() => Promise.resolve({ exists: false })),
+            set: jest.fn(() => Promise.resolve()),
           })),
         };
       }),
     };
 
     paymentServiceMock = {
-      finalizeOrder: vi.fn(() => Promise.resolve({ success: true })),
+      finalizeOrder: jest.fn(() => Promise.resolve({ success: true })),
     };
 
-    captureSpy = vi.spyOn(sentryService, 'captureException').mockImplementation(() => {});
-    vi.spyOn(sentryService, 'withScope').mockImplementation((_, cb) => cb());
-    vi.spyOn(sentryService, 'addBreadcrumb').mockImplementation(() => {});
+    captureSpy = jest.spyOn(sentryService, 'captureException').mockImplementation(() => {});
+    jest.spyOn(sentryService, 'withScope').mockImplementation((_, cb) => cb());
+    jest.spyOn(sentryService, 'addBreadcrumb').mockImplementation(() => {});
 
     const router = createWebhookRoutes({
       stripeInstance: stripeMock,
@@ -87,7 +87,7 @@ describe('Stripe webhook route', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
     delete process.env.STRIPE_WEBHOOK_SECRET;
   });
 
@@ -218,24 +218,24 @@ describe('Stripe webhook route', () => {
     stripeMock.webhooks.constructEvent.mockReturnValue(event);
 
     const webhookDocProcessed = {
-      get: vi.fn(() => Promise.resolve({ exists: true, data: () => ({ status: 'processed' }) })),
+      get: jest.fn(() => Promise.resolve({ exists: true, data: () => ({ status: 'processed' }) })),
     };
 
     adminDbMock.collection.mockImplementation(collectionName => {
       if (collectionName === 'webhook_events') {
         return {
-          doc: vi.fn(() => webhookDocProcessed),
+          doc: jest.fn(() => webhookDocProcessed),
         };
       }
       if (collectionName === 'orders_v2') {
         return {
-          doc: vi.fn(() => ({ set: vi.fn(() => Promise.resolve()) })),
+          doc: jest.fn(() => ({ set: jest.fn(() => Promise.resolve()) })),
         };
       }
       return {
-        doc: vi.fn(() => ({
-          get: vi.fn(() => Promise.resolve({ exists: false })),
-          set: vi.fn(() => Promise.resolve()),
+        doc: jest.fn(() => ({
+          get: jest.fn(() => Promise.resolve({ exists: false })),
+          set: jest.fn(() => Promise.resolve()),
         })),
       };
     });
