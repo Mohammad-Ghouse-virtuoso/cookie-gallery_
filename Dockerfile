@@ -1,23 +1,31 @@
-# Use a Node.js base image
-FROM node:18-alpine
+# Dockerfile (place at repo root)
+FROM node:18-alpine AS builder
 
-# Set the working directory
+# Install build deps
 WORKDIR /app
-
-# Copy package.json and package-lock.json (or yarn.lock)
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application's code
+# Copy source & build
 COPY . .
-
-# Build the production version
 RUN npm run build
 
-# Expose the port your application runs on
-EXPOSE 5173
+# Production image
+FROM node:18-alpine AS runner
+WORKDIR /app
 
-# Define the command to run your application
-CMD ["npm", "run", "dev"]
+# Install a small static server (you can use vite preview instead)
+# We'll use `serve` for static `dist` serving; alternatively use vite preview.
+RUN npm i -g serve
+
+# Copy built assets from builder
+COPY --from=builder /app/dist ./dist
+# If you also need a backend inside the same repo, copy backend build here
+# COPY --from=builder /app/backend ./backend
+
+# Use the PORT provided by Railway
+ENV PORT 3000
+EXPOSE 3000
+
+# Start: use environment PORT (Railway will set PORT at runtime)
+CMD ["sh", "-c", "serve -s dist -l ${PORT}"]
