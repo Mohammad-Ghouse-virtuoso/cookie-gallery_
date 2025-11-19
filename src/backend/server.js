@@ -44,6 +44,7 @@ app.use(cors({
       'http://localhost:5173',
       'http://127.0.0.1:5173',
       process.env.CORS_ORIGIN,
+      process.env.CORS_ORIGIN_VERCEL, // Support Vercel default domain
     ].filter(Boolean);
     if (!origin || allowed.includes(origin)) return cb(null, true);
     return cb(new Error(`CORS: Origin ${origin} not allowed`));
