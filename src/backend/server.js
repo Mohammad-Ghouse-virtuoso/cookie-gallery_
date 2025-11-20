@@ -17,6 +17,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env'), override: fals
 
 const logger = require('./logger');
 const PaymentService = require('./services/paymentService');
+const SchemaService = require('./services/schemaService');
 const createWebhookRoutes = require('./routes/webhooks');
 const createOrderRoutes = require('./routes/orders');
 const sentryService = require('./services/sentryService');
@@ -164,9 +165,11 @@ const ORDERS_COLLECTION = 'orders_v2';
 
 // Initialize PaymentService
 let paymentService = null;
+let schemaService = null;
 if (adminDb) {
   paymentService = new PaymentService(adminDb);
-  logger.info('PaymentService initialized');
+  schemaService = new SchemaService(adminDb);
+  logger.info('PaymentService and SchemaService initialized');
 }
 
 const toMinorUnits = (amount) => Math.max(0, Math.round(Number(amount || 0) * 100));
@@ -631,10 +634,11 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       },
     });
 
+    // Write to legacy orders_v2 collection
     const ordersRef = getOrdersCollection();
     await ordersRef.doc(localOrderId).set({
       localOrderId,
-  userEmail: customerEmail,
+      userEmail: customerEmail,
       userUid: req.user?.uid || null,
       status: 'pending',
       totalAmount,
@@ -650,6 +654,42 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // ALSO write to new normalized schema (dual-write)
+    if (schemaService) {
+      try {
+        // Transform cart to items array
+        const items = Object.entries(cart).map(([cookieId, quantity]) => ({
+          cookieId,
+          id: cookieId,
+          name: cookieId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          quantity,
+          price: Math.round(totalAmount / Object.values(cart).reduce((sum, qty) => sum + qty, 0)),
+        }));
+
+        await schemaService.createOrder({
+          orderId: localOrderId,
+          userId: customerEmail,
+          status: 'pending',
+          totalAmount,
+          currency: 'INR',
+          items,
+          shippingAddress,
+          orderType: metadata?.orderType || 'standard',
+          source: 'web',
+          providerSessionId: session.id,
+          checkoutUrl: session.url,
+          idempotencyKey,
+        });
+        logger.info('✅ Dual-write: Order written to normalized schema', { localOrderId });
+      } catch (normalizedError) {
+        // Don't fail the request if normalized write fails
+        logger.error('⚠️ Failed to write to normalized schema (non-critical)', { 
+          localOrderId, 
+          error: normalizedError.message 
+        });
+      }
+    }
 
     logPaymentEvent('order_created', { localOrderId, sessionId: session.id, email: customerEmail });
     res.status(200).json({
@@ -1017,6 +1057,7 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
       if (!localOrderId) {
         logPaymentEvent('webhook_missing_order_id', { eventType: event.type, sessionId: session.id });
       } else {
+        // Update legacy orders_v2
         const docRef = ordersRef.doc(localOrderId);
         await docRef.set({
           status: 'completed',
@@ -1028,12 +1069,69 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
           paymentIntentId: session.payment_intent || null,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
+
+        // ALSO update normalized schema
+        if (schemaService && session.payment_status === 'paid') {
+          try {
+            // Retrieve payment details from Stripe
+            let paymentIntent = session.payment_intent;
+            if (typeof paymentIntent === 'string' && stripeInstance) {
+              paymentIntent = await stripeInstance.paymentIntents.retrieve(paymentIntent, {
+                expand: ['payment_method', 'latest_charge']
+              });
+            }
+
+            // Extract payment method details
+            const paymentMethod = paymentIntent?.payment_method;
+            const charge = paymentIntent?.latest_charge;
+
+            await schemaService.updateOrderStatus(localOrderId, 'completed', {
+              completedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            await schemaService.createPayment({
+              orderId: localOrderId,
+              userId: session.customer_email || session.customer_details?.email,
+              provider: 'stripe',
+              providerTransactionId: session.payment_intent,
+              providerSessionId: session.id,
+              status: 'succeeded',
+              amount: session.amount_total / 100,
+              currency: session.currency?.toUpperCase() || 'INR',
+              paymentMethod: {
+                type: 'card',
+                cardBrand: paymentMethod?.card?.brand || charge?.payment_method_details?.card?.brand,
+                cardLast4: paymentMethod?.card?.last4 || charge?.payment_method_details?.card?.last4,
+                cardCountry: paymentMethod?.card?.country,
+                cardExpMonth: paymentMethod?.card?.exp_month,
+                cardExpYear: paymentMethod?.card?.exp_year,
+                cardFunding: paymentMethod?.card?.funding,
+              },
+              billingDetails: {
+                name: paymentMethod?.billing_details?.name || session.customer_details?.name,
+                email: paymentMethod?.billing_details?.email || session.customer_details?.email,
+                phone: paymentMethod?.billing_details?.phone || session.customer_details?.phone,
+              },
+              receiptUrl: charge?.receipt_url,
+              chargeId: charge?.id,
+            });
+
+            logger.info('✅ Dual-write: Payment recorded in normalized schema', { localOrderId });
+          } catch (normalizedError) {
+            logger.error('⚠️ Failed to write payment to normalized schema (non-critical)', {
+              localOrderId,
+              error: normalizedError.message
+            });
+          }
+        }
+
         logPaymentEvent('order_completed_webhook', { localOrderId, sessionId: session.id });
       }
     } else if (event.type === 'checkout.session.expired' || event.type === 'checkout.session.async_payment_failed') {
       const session = event.data.object;
       const localOrderId = session.metadata?.localOrderId || session.client_reference_id;
       if (localOrderId) {
+        // Update legacy orders_v2
         await ordersRef.doc(localOrderId).set({
           status: 'failed',
           providerInfo: {
@@ -1044,6 +1142,22 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
           lastKnownError: 'Session expired before completion.',
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
+
+        // ALSO update normalized schema
+        if (schemaService) {
+          try {
+            await schemaService.updateOrderStatus(localOrderId, 'failed', {
+              lastKnownError: 'Session expired before completion.',
+            });
+            logger.info('✅ Dual-write: Order failure recorded in normalized schema', { localOrderId });
+          } catch (normalizedError) {
+            logger.error('⚠️ Failed to update normalized schema (non-critical)', {
+              localOrderId,
+              error: normalizedError.message
+            });
+          }
+        }
+
         logPaymentEvent('order_failed_webhook', { localOrderId, sessionId: session.id });
       }
     }

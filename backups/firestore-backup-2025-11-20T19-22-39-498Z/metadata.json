@@ -1,0 +1,6 @@
+{
+  "timestamp": "2025-11-20T19:22:40.908Z",
+  "collections": ["users", "orders", "orders_v2", "webhook_events"],
+  "totalDocuments": 84,
+  "backupPath": "/home/mohx-nova/cookie-gallery/backups/firestore-backup-2025-11-20T19-22-39-498Z"
+}
