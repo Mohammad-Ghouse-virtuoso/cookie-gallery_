@@ -338,7 +338,7 @@ export function StripeCheckoutFlow({
           shippingAddress,
           metadata: extraOrderData ?? {},
           cartDetails,
-          customerEmail: user?.email ?? null,
+          customerEmail: user?.email ?? shippingAddress?.email ?? null,
         }),
       });
       if (!response.ok) {

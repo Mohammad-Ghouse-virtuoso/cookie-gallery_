@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEmptyCheckoutAddress, loadCheckoutAddress, persistCheckoutAddress } from '@/lib/checkoutAddressStorage';
 import type { CheckoutAddress } from '@/types/checkout';
+import { useAuth } from '@/context/AuthContext';
 
 const fieldClasses = 'w-full rounded-[12px] border border-[rgba(58,45,36,0.12)] bg-white px-4 py-3 text-sm text-[#3B2B1A] placeholder:text-[#B9AFA6] shadow-[inset_0_1px_2px_rgba(58,45,36,0.04)] transition-[border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-0 focus-visible:border-[#CFA676] focus-visible:shadow-[0_0_0_4px_rgba(226,185,127,0.18)]';
 
 const emptyErrors: Record<keyof CheckoutAddress, string> = {
   fullName: '',
   phone: '',
+  email: '',
   line1: '',
   line2: '',
   city: '',
@@ -18,9 +20,13 @@ const emptyErrors: Record<keyof CheckoutAddress, string> = {
 
 export default function CheckoutAddressPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [address, setAddress] = useState<CheckoutAddress>(() => loadCheckoutAddress() ?? getEmptyCheckoutAddress());
   const [errors, setErrors] = useState(emptyErrors);
   const [saving, setSaving] = useState(false);
+  
+  // Show email field only if user signed in with phone (no email)
+  const needsEmail = user && !user.email;
 
   const handleFieldChange = (field: keyof CheckoutAddress, value: string) => {
     setAddress(prev => ({
@@ -37,6 +43,15 @@ export default function CheckoutAddressPage() {
     const nextErrors = { ...emptyErrors };
     if (!address.fullName.trim()) nextErrors.fullName = 'Please add a recipient name.';
     if (!/^\+?\d[\d\s-]{7,}$/.test(address.phone.trim())) nextErrors.phone = 'Enter a valid phone number (at least 8 digits).';
+    // Validate email if user needs it (phone sign-in)
+    if (needsEmail) {
+      const email = address.email?.trim() || '';
+      if (!email) {
+        nextErrors.email = 'Email is required for order confirmation.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        nextErrors.email = 'Please enter a valid email address.';
+      }
+    }
     if (!address.line1.trim()) nextErrors.line1 = 'Street address is required.';
     if (!address.city.trim()) nextErrors.city = 'City is required.';
     if (!address.postalCode.trim()) nextErrors.postalCode = 'Postal code is required.';
@@ -100,6 +115,24 @@ export default function CheckoutAddressPage() {
               {errors.phone && <p className="mt-1 text-sm text-[#E35B48]">{errors.phone}</p>}
             </div>
           </div>
+
+          {needsEmail && (
+            <div>
+              <label htmlFor="email" className="block text-sm font-semibold text-[#3B2B1A]">Email address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={address.email ?? ''}
+                onChange={event => handleFieldChange('email', event.target.value)}
+                placeholder="your.email@example.com"
+                className={`${fieldClasses} ${errors.email ? 'border-[#E35B48]' : ''}`}
+                autoComplete="email"
+              />
+              {errors.email && <p className="mt-1 text-sm text-[#E35B48]">{errors.email}</p>}
+              <p className="mt-1 text-xs text-[#8E7360]">We'll send your order confirmation to this email.</p>
+            </div>
+          )}
 
           <div>
             <label htmlFor="line1" className="block text-sm font-semibold text-[#3B2B1A]">Address line 1</label>
