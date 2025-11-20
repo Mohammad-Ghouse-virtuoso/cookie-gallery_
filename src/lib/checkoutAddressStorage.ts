@@ -6,6 +6,7 @@ const LEGACY_STORAGE_KEY = STORAGE_KEY_BASE;
 const emptyAddress: CheckoutAddress = {
   fullName: '',
   phone: '',
+  email: '',
   line1: '',
   line2: '',
   city: '',
