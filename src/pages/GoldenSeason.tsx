@@ -107,13 +107,21 @@ export default function GoldenSeason() {
               <button
                 type="button"
                 onClick={() => navigate('/gift/warm-glow')}
-                className="inline-flex items-center justify-center text-sm font-semibold text-white"
+                className="inline-flex items-center justify-center text-sm font-semibold text-white hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: 'var(--radius-pill)',
                   background: 'linear-gradient(135deg, #e6b76f 0%, #d49a58 100%)',
-                  boxShadow: 'var(--shadow-medium)',
-                  transition: `transform var(--duration-small) ease, box-shadow var(--duration-small) ease`,
+                  boxShadow: '0 4px 12px rgba(214, 154, 88, 0.35)',
+                  transition: `all var(--duration-small) ease`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(214, 154, 88, 0.45)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(214, 154, 88, 0.35)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 Personalise a gift
@@ -121,14 +129,24 @@ export default function GoldenSeason() {
               <button
                 type="button"
                 onClick={() => navigate('/cookies')}
-                className="inline-flex items-center justify-center text-sm font-semibold text-[#5b3a20]"
+                className="inline-flex items-center justify-center text-sm font-bold text-white hover:scale-[1.02] active:scale-[0.98]"
                 style={{
                   padding: '0.75rem 1.5rem',
                   borderRadius: 'var(--radius-pill)',
-                  border: '1px solid rgba(219, 166, 97, 0.4)',
-                  background: 'rgba(248, 237, 220, 0.7)',
-                  boxShadow: 'var(--shadow-light)',
-                  transition: `transform var(--duration-small) ease, box-shadow var(--duration-small) ease`,
+                  background: 'linear-gradient(135deg, #8B4513 0%, #6B3410 100%)',
+                  border: '2px solid rgba(139, 69, 19, 0.3)',
+                  boxShadow: '0 4px 14px rgba(107, 52, 16, 0.4)',
+                  transition: `all var(--duration-small) ease`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #A0522D 0%, #8B4513 100%)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(107, 52, 16, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #8B4513 0%, #6B3410 100%)';
+                  e.currentTarget.style.boxShadow = '0 4px 14px rgba(107, 52, 16, 0.4)';
+                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
                 View cookie catalogue
