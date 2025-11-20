@@ -2,7 +2,7 @@
 import { motion } from 'framer-motion';
 
 export type ReviewItem = { id: number; name: string; rating: number; text: string; avatar: string };
-import avatar1 from '../assets/Shayan_image.jpg';
+import avatar1 from '../assets/Shayan_image_1.jpg';
 import avatar2 from '../assets/rahul_pfp.jpg';
 import avatar3 from '../assets/x_pfp.jpg';
 import avatar4 from '../assets/Bharathi_pfp.jpg';
