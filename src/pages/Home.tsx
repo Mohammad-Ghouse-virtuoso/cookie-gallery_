@@ -46,14 +46,14 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 font-inter antialiased">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-50 font-inter antialiased">
         <div className="text-gray-700 text-xl">Loading authentication...</div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="font-inter antialiased">
+    <main className="font-inter antialiased">
       {/* Welcome Dialog Box - Now triggered by URL param */}
       {showWelcomeDialog && user && !user.isAnonymous && (
         <div 
@@ -238,6 +238,6 @@ export default function Home() {
         </div>
       </footer>
       {/* FOOTER SECTION - END */}
-    </div>
+    </main>
   );
 }
