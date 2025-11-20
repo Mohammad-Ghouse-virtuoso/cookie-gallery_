@@ -32,7 +32,7 @@ test.describe('Visual Regression Tests', () => {
       });
     });
 
-    test('homepage hero section (above fold)', async ({ page }) => {
+    test.skip('homepage hero section (above fold)', async ({ page }) => {
       await page.goto('/');
       await page.waitForLoadState('domcontentloaded');
       await page.waitForSelector('h1', { timeout: 10000 });

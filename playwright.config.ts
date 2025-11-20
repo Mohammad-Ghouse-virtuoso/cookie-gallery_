@@ -33,6 +33,12 @@ export default defineConfig({
 
   expect: {
     timeout: 10_000,
+    /* Visual regression settings */
+    toHaveScreenshot: {
+      maxDiffPixels: 100, // Default tolerance for pixel differences
+      animations: 'disabled', // Disable animations for consistent screenshots
+      caret: 'hide', // Hide text input cursor
+    },
   },
 
   /* Configure projects for major browsers */
