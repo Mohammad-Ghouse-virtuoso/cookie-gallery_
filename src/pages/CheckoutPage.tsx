@@ -107,6 +107,7 @@ export default function CheckoutPage() {
   const [dirtyFields, setDirtyFields] = useState<Record<keyof CheckoutAddress, boolean>>({
     fullName: false,
     phone: false,
+    email: false,
     line1: false,
     line2: false,
     city: false,
