@@ -358,47 +358,64 @@ http_reqs......................: 10/s
 
 ---
 
-## CI/CD Integration
+## CI/CD Integration ✅
 
-### GitHub Actions (Future)
+### GitHub Actions (Active)
+
+Performance tests are now integrated into the CI/CD pipeline!
+
+**Current Setup:**
+
+- ✅ Runs automatically on every push to main/cookie_gallery_stripe branches
+- ✅ Uses mock credentials for testing (no real Firebase/Stripe calls)
+- ✅ Results uploaded as artifacts for historical tracking
+- ✅ Non-blocking (continues on error to avoid false build failures)
+
+**Important Notes:**
+
+1. **Mock Environment**: CI uses mock credentials since real secrets aren't available
+   - Mock Firebase project ID and credentials
+   - Mock Stripe test key
+   - Backend may start with limited functionality
+2. **Expected Behavior**:
+   - Backend startup may fail gracefully without real credentials
+   - Performance tests will skip if backend isn't available
+   - This is expected and won't block builds
+3. **Real Performance Testing**:
+   - For accurate performance metrics, run tests locally with real credentials
+   - Or configure GitHub secrets with proper Firebase/Stripe test keys
+
+**Configuration:** `.github/workflows/ci.yml`
 
 ```yaml
-name: Performance Tests
-
-on:
-  schedule:
-    - cron: "0 2 * * *" # Daily at 2 AM
-  workflow_dispatch: # Manual trigger
-
 jobs:
   performance:
     runs-on: ubuntu-latest
+    # Only run on non-fork PRs (where secrets are available)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
-
-      - name: Run performance tests
-        run: npm run perf:all
-
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: performance-results
-          path: performance/results/
+      - Install k6
+      - Create mock environment
+      - Start backend (with error handling)
+      - Run performance tests (continue on error)
+      - Upload results artifacts
 ```
+
+**View Results:**
+
+1. Go to GitHub Actions tab
+2. Select workflow run
+3. Download "performance-results" artifact
+4. Review test output files
+
+**Local vs CI:**
+| Aspect | Local | CI |
+|--------|-------|-----|
+| Credentials | Real Firebase/Stripe | Mock credentials |
+| Backend | Full functionality | Limited/mock mode |
+| Accuracy | Production-like | Baseline only |
+| Purpose | Real performance metrics | Smoke test |
 
 ---
 
