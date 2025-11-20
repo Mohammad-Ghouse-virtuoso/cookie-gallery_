@@ -25,7 +25,8 @@
     "perf:webhook": "k6 run performance/webhook-load.test.js",
     "perf:checkout": "k6 run performance/checkout-flow.test.js",
     "perf:smoke": "k6 run --vus 1 --duration 30s performance/health-check.test.js",
-    "perf:all": "npm run perf:health && npm run perf:webhook && npm run perf:checkout"
+    "perf:all": "npm run perf:health && npm run perf:webhook && npm run perf:checkout",
+    "optimize:images": "node scripts/optimize-images.js"
   },
   "dependencies": {
     "@heroui/react": "^2.8.5",
@@ -77,6 +78,7 @@
     "lint-staged": "^16.2.6",
     "postcss": "^8.5.6",
     "prettier": "^3.6.2",
+    "sharp": "^0.34.5",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "typescript": "~5.8.3",
