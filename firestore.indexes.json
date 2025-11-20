@@ -19,16 +19,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "providerSessionId",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "orders_v2",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "userEmail",
           "order": "ASCENDING"
         },
