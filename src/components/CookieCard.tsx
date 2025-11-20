@@ -111,10 +111,10 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
       >
         <button
           onClick={() => onChange(quantity - 1)}
-          className={`flex items-center justify-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2
+          className={`flex items-center justify-center text-lg font-semibold focus:outline-none
             ${quantity > 0 
-              ? 'bg-white border text-[#5b3a20] hover:bg-[#f8eddc] hover:scale-110 active:scale-95' 
-                : 'bg-[#2C2C2F] text-[#A7A7AA] border border-[#2C2C2F] cursor-not-allowed'}`}
+              ? 'bg-white border text-[#5b3a20] hover:bg-[#f8eddc] hover:scale-110 active:scale-95 focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2' 
+                : 'bg-[#E5E5E5] text-[#9CA3AF] border border-[#D1D5DB] cursor-not-allowed opacity-60'}`}
           style={{
             width: '36px',
             height: '36px',
