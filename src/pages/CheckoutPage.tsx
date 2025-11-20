@@ -52,6 +52,16 @@ function computeAddressErrors(address: Partial<CheckoutAddress> | undefined) {
   } else if (!PHONE_PATTERN.test(phone.trim())) {
     errors.phone = 'Enter a valid phone number.';
   }
+  // Validate email for phone sign-in users
+  const needsEmail = user && !user.email;
+  if (needsEmail) {
+    const email = stringFor('email').trim();
+    if (!email) {
+      errors.email = 'Email is required for order confirmation.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.email = 'Enter a valid email address.';
+    }
+  }
   if (!stringFor('line1').trim()) {
     errors.line1 = 'Add the street and house details.';
   }
@@ -517,6 +527,27 @@ export default function CheckoutPage() {
                       <p className="mt-1 text-xs text-[#C44531]">{errors.phone}</p>
                     ) : null}
                   </div>
+                  {user && !user.email && (
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#8E7360]" htmlFor="checkout-email">Email address</label>
+                      <input
+                        id="checkout-email"
+                        name="email"
+                        type="email"
+                        value={address.email ?? ''}
+                        onChange={(event) => setAddress(prev => ({ ...prev, email: event.target.value }))}
+                        onBlur={() => markDirty('email')}
+                        placeholder="your.email@example.com"
+                        className={`mt-1 w-full rounded-[12px] border px-3 py-2 text-sm text-[#3B2B1A] focus:outline-none focus:ring-2 focus:ring-[#C47A41] ${dirtyFields.email && errors.email ? 'border-[#F1998C]' : 'border-[rgba(226,185,127,0.45)]'}`}
+                        autoComplete="email"
+                        aria-invalid={dirtyFields.email && Boolean(errors.email)}
+                      />
+                      {dirtyFields.email && errors.email ? (
+                        <p className="mt-1 text-xs text-[#C44531]">{errors.email}</p>
+                      ) : null}
+                      <p className="mt-1 text-xs text-[#8E7360]">We'll send your order confirmation here.</p>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#8E7360]" htmlFor="checkout-postal">PIN code</label>
                     <input
