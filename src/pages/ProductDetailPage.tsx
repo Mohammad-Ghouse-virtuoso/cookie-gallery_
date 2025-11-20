@@ -416,22 +416,20 @@ export default function ProductDetailPage() {
         </motion.div>
       </section>
 
-      <footer className="mt-10 bg-[#E2B97F] py-8 text-white">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 px-4 md:flex-row md:items-center">
-          <div>
-            <p className="font-['Playfair_Display'] text-lg italic">“Taste health, one bite at a time.”</p>
-            <p className="mt-1 text-sm text-white/80">Crafted by Cookie Gallery</p>
+      <footer className="mt-10 bg-[#E2B97F] py-5 text-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1">
+            <p className="font-['Playfair_Display'] text-base italic leading-snug">"Taste health, one bite at a time."</p>
+            <p className="text-xs text-white/70">Crafted by Cookie Gallery</p>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/cookies')}
-              className="inline-flex items-center justify-center rounded-full border border-white/70 px-5 py-2 text-sm font-semibold text-white transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-white hover:text-[#B98042]"
-            >
-              Back to Catalogue
-            </button>
-            <div className="rounded-full bg-white/10 px-3 py-2 text-sm font-semibold tracking-wide">Cookie Gallery</div>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/cookies')}
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-full bg-[#3B2B1A] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#2A1C12] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#E2B97F]"
+          >
+            <span>←</span>
+            <span>Back to Catalogue</span>
+          </button>
         </div>
       </footer>
 
