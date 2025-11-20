@@ -1,8 +1,34 @@
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { useState, useRef } from 'react';
 // Hero banner image
 import heroImage from '../assets/Cookie-Hero Card.png';
 
 export default function Hero() {
+  const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  
+  // 3D tilt tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  // Smooth spring animations
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), { stiffness: 300, damping: 30 });
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+  
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    mouseX.set(0);
+    mouseY.set(0);
+  };
   return (
     <section className="relative w-full bg-gradient-to-b from-blue-50 via-gray-50 to-white pt-16 pb-20 font-inter antialiased">
       <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
@@ -23,23 +49,116 @@ export default function Hero() {
           {/* CTA removed from Hero per layout update - moved after testimonials */}
         </motion.div>
 
-        {/* Image Content with Original (Subtle Rotate & Scale) Hover Style */}
+        {/* Image Content with 3D Tilt + Floating + Glow Effects */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.2 }}
           className="flex justify-center"
+          style={{ perspective: '1000px' }}
         >
-          <img
-            src={heroImage}
-            alt="An artful platter showcasing a variety of handcrafted cookies including chocolate chip, oatmeal, and specialty flavors"
-            width="800"
-            height="600"
-            loading="eager"
-            decoding="async"
-            fetchPriority="high"
-            className="w-full max-w-md md:max-w-full rounded-2xl object-cover transform origin-center shadow-[0_20px_60px_rgba(0,0,0,0.25)] ring-1 ring-white/40 rotate-3 transition-transform duration-500 ease-in-out hover:rotate-0 hover:scale-105"
-          />
+          <motion.div
+            ref={cardRef}
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              rotateX,
+              rotateY,
+              transformStyle: 'preserve-3d',
+            }}
+            animate={{
+              y: isHovered ? [0, -10, 0] : 0,
+              scale: isHovered ? 1.05 : 1,
+            }}
+            transition={{
+              y: {
+                duration: 2,
+                repeat: isHovered ? Infinity : 0,
+                ease: 'easeInOut',
+              },
+              scale: { duration: 0.3 },
+            }}
+            className="relative"
+          >
+            {/* Animated glow ring */}
+            <motion.div
+              animate={{
+                opacity: isHovered ? [0.3, 0.6, 0.3] : 0,
+                scale: isHovered ? [1, 1.1, 1] : 1,
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="absolute inset-0 rounded-2xl blur-xl"
+              style={{
+                background: 'linear-gradient(135deg, rgba(251, 113, 133, 0.4), rgba(139, 92, 246, 0.4), rgba(59, 130, 246, 0.4))',
+                zIndex: -1,
+              }}
+            />
+            
+            {/* Cookie sparkles */}
+            {isHovered && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 0, x: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    y: [-20, -40],
+                    x: [0, 20],
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute top-10 right-10 text-3xl"
+                  style={{ zIndex: 10 }}
+                >
+                  ✨
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 0, x: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    y: [-20, -50],
+                    x: [0, -30],
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                  className="absolute bottom-20 left-10 text-2xl"
+                  style={{ zIndex: 10 }}
+                >
+                  🍪
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 0, x: 0 }}
+                  animate={{ 
+                    opacity: [0, 1, 0],
+                    y: [-15, -35],
+                    x: [0, 15],
+                  }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: 0.8 }}
+                  className="absolute top-1/2 right-5 text-xl"
+                  style={{ zIndex: 10 }}
+                >
+                  ✨
+                </motion.div>
+              </>
+            )}
+            
+            <img
+              src={heroImage}
+              alt="An artful platter showcasing a variety of handcrafted cookies including chocolate chip, oatmeal, and specialty flavors"
+              width="800"
+              height="600"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="w-full max-w-md md:max-w-full rounded-2xl object-cover shadow-[0_20px_60px_rgba(0,0,0,0.25)] ring-1 ring-white/40"
+              style={{ 
+                transform: 'translateZ(50px)',
+                willChange: 'transform',
+              }}
+            />
+          </motion.div>
         </motion.div>
       </div>
 
