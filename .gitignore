@@ -56,6 +56,10 @@ playwright-report/
 test-results/
 results/
 
+# Performance test results
+performance/results/*.json
+performance/results/*.html
+
 # Vite build output
 dist
 

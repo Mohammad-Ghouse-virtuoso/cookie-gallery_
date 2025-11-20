@@ -56,6 +56,55 @@ jobs:
       run: npm audit --audit-level=high
       continue-on-error: true
 
+  performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install k6
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6 -y
+    
+    - name: Install backend dependencies
+      run: |
+        cd src/backend
+        npm ci
+    
+    - name: Start backend server
+      run: |
+        cd src/backend
+        node server.js &
+        sleep 5
+      env:
+        NODE_ENV: test
+    
+    - name: Run performance tests
+      run: |
+        echo "🚀 Running performance baseline tests..."
+        npm run perf:health || echo "⚠️ Health check performance needs optimization"
+      continue-on-error: true
+    
+    - name: Upload performance results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: performance/results/
+
   security:
     runs-on: ubuntu-latest
     

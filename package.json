@@ -20,7 +20,12 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "perf:health": "k6 run performance/health-check.test.js",
+    "perf:webhook": "k6 run performance/webhook-load.test.js",
+    "perf:checkout": "k6 run performance/checkout-flow.test.js",
+    "perf:smoke": "k6 run --vus 1 --duration 30s performance/health-check.test.js",
+    "perf:all": "npm run perf:health && npm run perf:webhook && npm run perf:checkout"
   },
   "dependencies": {
     "@heroui/react": "^2.8.5",
