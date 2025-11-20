@@ -161,9 +161,12 @@ export default function ProductDetailPage() {
           className="relative overflow-hidden rounded-[24px] bg-[#FFF5EA] shadow-[0_30px_70px_rgba(226,185,127,0.22)]"
         >
           <img
-            src={cookie.src}
+            src={cookie.src.replace('-small.webp', '-large.webp')}
+            srcSet={`${cookie.src.replace('-small.webp', '-medium.webp')} 600w, ${cookie.src.replace('-small.webp', '-large.webp')} 1200w`}
+            sizes="(max-width: 768px) 600px, 1200px"
             alt={cookie.name}
-            loading="lazy"
+            loading="eager"
+            decoding="async"
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1F13081A] to-transparent" aria-hidden="true" />
