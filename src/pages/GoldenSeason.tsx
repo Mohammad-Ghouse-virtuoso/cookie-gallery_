@@ -131,7 +131,7 @@ export default function GoldenSeason() {
                   transition: `transform var(--duration-small) ease, box-shadow var(--duration-small) ease`,
                 }}
               >
-                View seasonal cookies
+                View cookie catalogue
               </button>
             </div>
           </div>

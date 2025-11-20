@@ -17,7 +17,8 @@ export default function CookieCatalogue() {
   // Smooth scroll to top on mount
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    const timer = setTimeout(() => setIsLoading(false), 300);
+    // Reduced timeout since we're using optimized WebP images now
+    const timer = setTimeout(() => setIsLoading(false), 100);
     return () => clearTimeout(timer);
   }, []);
 

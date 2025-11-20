@@ -16,6 +16,13 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
   const isMaxQuantity = quantity >= maxQuantity;
   const [imageLoaded, setImageLoaded] = React.useState(false);
   const [imageError, setImageError] = React.useState(false);
+  
+  // Generate responsive srcset for optimized images
+  const generateSrcSet = (src: string): string => {
+    if (!src.includes('/images/optimized/')) return `${src} 1x`;
+    const base = src.replace(/-small\.webp$/, '');
+    return `${base}-small.webp 300w, ${base}-medium.webp 600w`;
+  };
 
   return (
     <article
@@ -50,7 +57,8 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
           alt={`${cookie.name} - ${cookie.description}`}
           loading="lazy"
           decoding="async"
-          srcSet={`${cookie.src} 1x`}
+          srcSet={generateSrcSet(cookie.src)}
+          sizes="(max-width: 640px) 300px, (max-width: 1024px) 600px, 300px"
           className={`w-full h-full object-cover transition-all ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
