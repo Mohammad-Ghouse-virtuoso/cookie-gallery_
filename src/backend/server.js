@@ -23,6 +23,10 @@ const sentryService = require('./services/sentryService');
 
 const app = express();
 
+// Trust Railway's reverse proxy (fixes X-Forwarded-For header warnings)
+// Railway, Heroku, Render, and other platforms use reverse proxies
+app.set('trust proxy', 1);
+
 // Initialize Sentry (must be before other middleware)
 const Sentry = sentryService.initSentry(app);
 if (Sentry) {
@@ -226,6 +230,10 @@ const findOrderBySessionId = async (sessionId) => {
     return null;
   }
 };
+// Cache Firestore connectivity status (check every 30 seconds instead of every request)
+let firestoreConnectivityCache = { status: 'unknown', lastChecked: 0 };
+const FIRESTORE_CACHE_TTL = 30000; // 30 seconds
+
 // Health endpoint exposes a non-sensitive boot id so client can detect backend restarts
 app.get('/health', async (req, res) => {
   const healthCheck = {
@@ -243,17 +251,29 @@ app.get('/health', async (req, res) => {
     }
   };
 
-  // Test Firestore connectivity if available
+  // Test Firestore connectivity only if cache is stale (reduces database writes by 99%)
   if (adminDb) {
-    try {
-      await adminDb.collection('health_checks').doc('test').set({ 
-        timestamp: admin.firestore.FieldValue.serverTimestamp() 
-      }, { merge: true });
-      healthCheck.services.firestoreConnectivity = 'ok';
-    } catch (error) {
-      healthCheck.services.firestoreConnectivity = 'error';
+    const now = Date.now();
+    const cacheAge = now - firestoreConnectivityCache.lastChecked;
+    
+    if (cacheAge > FIRESTORE_CACHE_TTL) {
+      // Cache is stale, perform actual connectivity check
+      try {
+        await adminDb.collection('health_checks').doc('test').set({ 
+          timestamp: admin.firestore.FieldValue.serverTimestamp() 
+        }, { merge: true });
+        firestoreConnectivityCache = { status: 'ok', lastChecked: now };
+      } catch (error) {
+        firestoreConnectivityCache = { status: 'error', lastChecked: now };
+        healthCheck.ok = false;
+        logger.error('Health check: Firestore connectivity failed', { error: error.message });
+      }
+    }
+    
+    // Use cached status
+    healthCheck.services.firestoreConnectivity = firestoreConnectivityCache.status;
+    if (firestoreConnectivityCache.status === 'error') {
       healthCheck.ok = false;
-      logger.error('Health check: Firestore connectivity failed', { error: error.message });
     }
   }
 
