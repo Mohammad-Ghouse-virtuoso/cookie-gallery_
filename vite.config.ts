@@ -28,6 +28,7 @@ const config: UserConfig & { test: VitestUserConfig['test'] } = {
       'node_modules',
       'dist',
       'src/backend/**/*',
+      'performance/**/*',
       '.idea',
       '.git',
       '.cache',
