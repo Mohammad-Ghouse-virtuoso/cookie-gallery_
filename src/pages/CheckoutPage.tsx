@@ -30,7 +30,7 @@ function buildCartSnapshot(cart: Record<string, number>, pendingSnapshot?: CartS
   return snapshot;
 }
 
-function computeAddressErrors(address: Partial<CheckoutAddress> | undefined) {
+function computeAddressErrors(address: Partial<CheckoutAddress> | undefined, user: { email?: string | null } | null) {
   const errors: Partial<Record<keyof CheckoutAddress, string>> = {};
   const stringFor = (field: keyof CheckoutAddress) => {
     const value = address?.[field];
@@ -178,7 +178,7 @@ export default function CheckoutPage() {
     return () => window.clearTimeout(handle);
   }, [address]);
 
-  const errors = useMemo(() => computeAddressErrors(address), [address]);
+  const errors = useMemo(() => computeAddressErrors(address, user), [address, user]);
   const isAddressValid = useMemo(() => REQUIRED_FIELDS.every(field => !errors[field]), [errors]);
 
   useEffect(() => {
