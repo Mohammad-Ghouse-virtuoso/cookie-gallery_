@@ -37,6 +37,7 @@ describe('checkoutAddressStorage', () => {
     const address: CheckoutAddress = {
       fullName: 'John Doe',
       phone: '+919876543210',
+      email: '',
       line1: '123 Main St',
       line2: 'Apt 4B',
       city: 'Mumbai',
