@@ -204,12 +204,33 @@ export function StripeCheckoutFlow({
     completionIssued.current = true;
     onCartCleared?.();
     onPaymentCompletedChange?.(true);
+    
+    // Prepare order data for success page
+    const orderItems = Object.entries(cart).map(([id, qty]) => {
+      const detail = cartDetails?.[id];
+      return {
+        id,
+        name: detail?.name || id,
+        qty,
+        price: detail?.price || 0,
+        image: detail?.image,
+      };
+    });
+    
+    const orderData = {
+      orderId: currentOrder?.localOrderId || 'N/A',
+      items: orderItems,
+      totalAmount,
+      paymentStatus: 'succeeded',
+      customerEmail: user?.email,
+    };
+    
     clearOrderState();
     setBanner(buildBanner('success', 'Payment verified. Redirecting to your confirmation…'));
     window.setTimeout(() => {
-      navigate(successPath, { replace: true });
+      navigate(successPath, { replace: true, state: orderData });
     }, 400);
-  }, [clearOrderState, navigate, onCartCleared, onPaymentCompletedChange, successPath]);
+  }, [cart, cartDetails, clearOrderState, currentOrder?.localOrderId, navigate, onCartCleared, onPaymentCompletedChange, successPath, totalAmount, user?.email]);
 
   const pollStatus = useCallback(async (manual = false) => {
     if (!currentOrder) {

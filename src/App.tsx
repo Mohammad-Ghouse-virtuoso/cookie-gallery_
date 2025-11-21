@@ -24,6 +24,7 @@ import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
 import PaymentStatusPage from "./pages/PaymentStatus";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
+import CartPersistenceBanner from "./components/CartPersistenceBanner";
 
 // Import AuthProvider
 import { AuthProvider } from "./context/AuthContext";
@@ -50,6 +51,8 @@ function AppContent() {
     <>
       {/* Conditionally render the NavBar based on the current URL */}
       {!hideNav && <NavBar />}
+      {/* Show cart persistence banner on first visit */}
+      {!hideNav && <CartPersistenceBanner />}
 
       <Routes>
         {/* Unprotected routes (don't have a NavBar) */}

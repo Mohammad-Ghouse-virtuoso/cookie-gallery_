@@ -26,35 +26,46 @@ const detectE2EMode = (): boolean => {
 
 const isE2ETestMode = detectE2EMode();
 const TEST_CART_STORAGE_KEY = 'cg-e2e-cart';
+const PROD_CART_STORAGE_KEY = 'cg-cart';
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<Cart>(() => {
-    if (!isE2ETestMode) {
-      return {};
-    }
     try {
-      const stored = sessionStorage.getItem(TEST_CART_STORAGE_KEY);
-      if (!stored) {
+      // E2E mode: use sessionStorage
+      if (isE2ETestMode) {
+        const stored = sessionStorage.getItem(TEST_CART_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Cart;
+          if (parsed && typeof parsed === 'object') {
+            return parsed;
+          }
+        }
         return {};
       }
-      const parsed = JSON.parse(stored) as Cart;
-      if (parsed && typeof parsed === 'object') {
-        return parsed;
+      
+      // Production: use localStorage for persistence
+      const stored = localStorage.getItem(PROD_CART_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Cart;
+        if (parsed && typeof parsed === 'object') {
+          return parsed;
+        }
       }
     } catch {
-      /* ignore malformed data in test mode */
+      /* ignore malformed data */
     }
     return {};
   });
 
   useEffect(() => {
-    if (!isE2ETestMode) {
-      return;
-    }
     try {
-      sessionStorage.setItem(TEST_CART_STORAGE_KEY, JSON.stringify(cart));
+      if (isE2ETestMode) {
+        sessionStorage.setItem(TEST_CART_STORAGE_KEY, JSON.stringify(cart));
+      } else {
+        localStorage.setItem(PROD_CART_STORAGE_KEY, JSON.stringify(cart));
+      }
     } catch {
-      /* ignore storage quota issues in test mode */
+      /* ignore storage quota issues */
     }
   }, [cart]);
 

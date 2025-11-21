@@ -106,20 +106,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => { mounted = false };
   }, [hasConfig]);
 
-  // Enforce sign-out-on-refresh policy (to reset user like cart resets) once per browser load
+  // Removed sign-out-on-refresh policy - users now stay logged in across refreshes
   useEffect(() => {
     if (isE2ETestMode) return;
     if (reloadChecked) return;
-    const already = sessionStorage.getItem('cg_reload_done');
-    const doReset = !already; // first load after refresh
-    (async () => {
-      if (doReset && hasConfig && getApps().length && getAuth().currentUser) {
-        await getAuth().signOut().catch(() => { /* ignore */ });
-      }
-      sessionStorage.setItem('cg_reload_done', '1');
-      setReloadChecked(true);
-    })();
-  }, [reloadChecked, hasConfig]);
+    // Just mark reload as checked without signing out
+    setReloadChecked(true);
+  }, [reloadChecked]);
 
   // Set persistence once
   useEffect(() => {
