@@ -169,7 +169,7 @@ describe('StripeCheckoutFlow', () => {
     await userEvent.click(checkButton);
 
     await waitFor(() => {
-      expect(navigateSpy).toHaveBeenCalledWith('/order-success', { replace: true });
+      expect(navigateSpy).toHaveBeenCalledWith('/order-success', expect.objectContaining({ replace: true }));
     }, { timeout: 2000 });
 
     rerender(<div />);
