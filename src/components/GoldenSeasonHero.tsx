@@ -68,7 +68,7 @@ const badgeMeta: BadgeDefinition[] = [
   { key: 'icon-delivery', label: 'Fast Delivery', tooltip: 'Fresh batches leave our kitchen within 24 hours.' },
   { key: 'icon-timer', label: 'Limited Drop', tooltip: 'Only small festive batches available each week.' },
   { key: 'icon-handmade', label: 'Handmade', tooltip: 'Every cookie is hand-finished and quality checked.' },
-  { key: 'icon-seal', label: 'No Returns', tooltip: 'Perishable goods — crafted to order, no returns.' },
+  { key: 'icon-seal', label: 'No Returns', tooltip: 'Perishable goods — crafted to order, no returns. See full policy for details.' },
 ];
 
 function sortByPath(entries: [string, EagerModule][]) {

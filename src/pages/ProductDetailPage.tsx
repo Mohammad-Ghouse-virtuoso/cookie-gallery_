@@ -239,9 +239,13 @@ export default function ProductDetailPage() {
             <span className="inline-flex items-center gap-2 rounded-full bg-[#F6E6D0] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#8B6A47]">
               <Truck className="h-4 w-4" aria-hidden="true" /> Fast Delivery
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full bg-[#F2F2F2] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#7D7D7D]">
+            <Link 
+              to="/privacy#return-policy"
+              className="inline-flex items-center gap-2 rounded-full bg-[#F2F2F2] px-4 py-2 text-xs font-medium uppercase tracking-wide text-[#7D7D7D] hover:bg-[#E8E8E8] transition-colors cursor-pointer"
+              title="View full return policy"
+            >
               <ShieldCheck className="h-4 w-4" aria-hidden="true" /> No Return / Exchange
-            </span>
+            </Link>
             <span className="inline-flex items-center gap-2 rounded-full bg-[#E8F5E4] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#4A7D44]">
               <Leaf className="h-4 w-4" aria-hidden="true" /> {dietBadge}
             </span>
@@ -290,7 +294,9 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          <p className="text-xs text-[#8B7A68]">No return or exchange on consumable goods. Dispatches within 24 hours.</p>
+          <p className="text-xs text-[#8B7A68]">
+            No return or exchange on consumable goods. <Link to="/privacy#return-policy" className="underline hover:text-[#C47A41] transition-colors">View full policy</Link>. Dispatches within 24 hours.
+          </p>
         </motion.div>
       </header>
 
