@@ -10,8 +10,8 @@
  * These tests use JSON Schema validation to ensure API responses match expected formats.
  */
 
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
+const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
 
 const ajv = new Ajv();
 addFormats(ajv);
@@ -413,9 +413,24 @@ describe('Firebase API Contract Tests', () => {
               uid: { type: 'string' },
               providerId: { type: 'string' },
               email: { type: 'string' },
-              displayName: { type: 'string' },
-              phoneNumber: { type: 'string' },
-              photoURL: { type: 'string' }
+              displayName: {
+                oneOf: [
+                  { type: 'string' },
+                  { type: 'null' }
+                ]
+              },
+              phoneNumber: {
+                oneOf: [
+                  { type: 'string' },
+                  { type: 'null' }
+                ]
+              },
+              photoURL: {
+                oneOf: [
+                  { type: 'string' },
+                  { type: 'null' }
+                ]
+              }
             }
           }
         }

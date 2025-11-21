@@ -10,8 +10,8 @@
  * These tests use JSON Schema validation to ensure API responses match expected formats.
  */
 
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
+const Ajv = require('ajv');
+const addFormats = require('ajv-formats');
 
 const ajv = new Ajv();
 addFormats(ajv);
