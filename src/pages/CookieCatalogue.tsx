@@ -8,11 +8,39 @@ import { CookieCardSkeleton } from '@/components/ui/skeleton';
 
 export default function CookieCatalogue() {
   const { cart, setCart } = useCart();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeDietaryFilters, setActiveDietaryFilters] = useState<string[]>([]);
-  const [activeProductTypes, setActiveProductTypes] = useState<string[]>([]);
+  const location = useLocation();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize state from URL params to preserve filters across navigation
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('search') || '';
+  });
+  const [activeDietaryFilters, setActiveDietaryFilters] = useState<string[]>(() => {
+    const params = new URLSearchParams(location.search);
+    const dietary = params.get('dietary');
+    return dietary ? dietary.split(',') : [];
+  });
+  const [activeProductTypes, setActiveProductTypes] = useState<string[]>(() => {
+    const params = new URLSearchParams(location.search);
+    const types = params.get('types');
+    return types ? types.split(',') : [];
+  });
+
+  // Sync state to URL params whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (activeDietaryFilters.length > 0) params.set('dietary', activeDietaryFilters.join(','));
+    if (activeProductTypes.length > 0) params.set('types', activeProductTypes.join(','));
+    
+    const newSearch = params.toString();
+    const currentSearch = location.search.slice(1);
+    if (newSearch !== currentSearch) {
+      navigate(`?${newSearch}`, { replace: true });
+    }
+  }, [searchQuery, activeDietaryFilters, activeProductTypes, navigate, location.search]);
 
   // Smooth scroll to top on mount
   useEffect(() => {
@@ -23,10 +51,8 @@ export default function CookieCatalogue() {
   }, []);
 
   // Scroll to highlighted cookie if navigation passed state or query
-  const location = useLocation();
   useEffect(() => {
     // read from state first
-     
     const state = (location.state as any) || {};
     let highlightId = state.highlight as string | undefined;
     if (!highlightId) {
@@ -291,7 +317,11 @@ export default function CookieCatalogue() {
                   cookie={cookie as CookieData}
                   quantity={(cart as any)[cookie.id] || 0}
                   onChange={(newQty) => handleQuantityChange(cookie.id, newQty)}
-                  onShowDetails={() => navigate(`/product/${cookie.id}`)}
+                  onShowDetails={() => {
+                    // Preserve current filter state when navigating to product detail
+                    const params = new URLSearchParams(location.search);
+                    navigate(`/product/${cookie.id}?returnFilters=${encodeURIComponent(params.toString())}`);
+                  }}
                 />
               ))}
             </div>

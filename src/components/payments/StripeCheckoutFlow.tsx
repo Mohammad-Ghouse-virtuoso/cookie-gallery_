@@ -197,7 +197,7 @@ export function StripeCheckoutFlow({
     updateCheckoutScopeTags({ localOrderId: null, providerSessionId: null });
   }, []);
 
-  const handleOrderCompleted = useCallback(() => {
+  const handleOrderCompleted = useCallback(async () => {
     if (completionIssued.current) {
       return;
     }
@@ -217,12 +217,58 @@ export function StripeCheckoutFlow({
       };
     });
     
+    // Fetch payment details to get receipt URL
+    let receiptUrl = null;
+    let cardBrand = null;
+    let cardLast4 = null;
+    
+    try {
+      const token = await getIdToken();
+      const orderDoc = await fetch(`${API_BASE}/api/order-status?orderId=${encodeURIComponent(currentOrder?.localOrderId || '')}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      
+      if (orderDoc.ok) {
+        const orderData = await orderDoc.json();
+        const paymentIntentId = orderData.providerInfo?.payment_intent || null;
+        
+        if (paymentIntentId) {
+          const detailsResponse = await fetch(`${API_BASE}/get-payment-details`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ paymentIntentId }),
+          });
+          
+          if (detailsResponse.ok) {
+            const details = await detailsResponse.json();
+            receiptUrl = details.paymentDetails?.receiptUrl || null;
+            cardBrand = details.paymentDetails?.cardBrand || null;
+            cardLast4 = details.paymentDetails?.cardLast4 || null;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch receipt URL:', error);
+      // Continue without receipt - don't block success page
+    }
+    
     const orderData = {
       orderId: currentOrder?.localOrderId || 'N/A',
       items: orderItems,
       totalAmount,
       paymentStatus: 'succeeded',
       customerEmail: user?.email,
+      receiptUrl,
+      cardBrand,
+      cardLast4,
     };
     
     clearOrderState();

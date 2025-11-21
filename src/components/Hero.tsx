@@ -89,6 +89,18 @@ export default function Hero() {
                 willChange: 'transform',
               }}
             />
+            {/* Interactive hint - fades in on mount, fades out on first hover */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isHovered ? 0 : 1 }}
+              transition={{ duration: 0.5, delay: isHovered ? 0 : 1.5 }}
+              className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none"
+              aria-hidden="true"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm px-3 py-1.5 text-[10px] font-medium text-gray-600 shadow-lg">
+                Move your mouse over the image ✨
+              </span>
+            </motion.div>
           </motion.div>
         </motion.div>
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cookies, type CookieData } from '@/data/cookies';
 import { formatPrice } from '@/utils/formatPrice';
@@ -35,6 +35,21 @@ const ingredientsMap: Record<string, string[]> = {
 };
 
 const defaultIngredients = ['Whole grain flour', 'Plant-based butter', 'Raw cane sugar', 'Natural flavour extracts', 'Sea salt'];
+
+const dietaryFilters = [
+  { label: 'Gluten-Free', value: 'gluten-free' },
+  { label: 'Sugar-Free', value: 'sugar-free' },
+  { label: 'High-Protein', value: 'high-protein' },
+  { label: 'Contains Nuts', value: 'contains-nuts' },
+  { label: 'Vegetarian (Eggless)', value: 'vegetarian-eggless' },
+];
+
+const productTypeFilters = [
+  { label: 'Best-Seller', value: 'best-seller' },
+  { label: 'Premium', value: 'premium' },
+  { label: 'Classic', value: 'classic' },
+  { label: 'Seasonal', value: 'seasonal' },
+];
 
 const occasionMap: Record<string, string> = {
   'seasonal': 'Festive Celebrations',
@@ -87,6 +102,7 @@ function useEscapeToCatalogue(onExit: () => void) {
 export default function ProductDetailPage() {
   const { cookieId } = useParams<{ cookieId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { cart, setCart } = useCart();
 
   const cookie = useMemo(() => cookies.find(item => item.id === cookieId), [cookieId]);
@@ -148,7 +164,40 @@ export default function ProductDetailPage() {
       <nav className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 pb-6 pt-8 text-sm text-[#8B7A68]">
         <Link to="/" className="transition-colors hover:text-[#3B2B1A]">Home</Link>
         <span aria-hidden="true">›</span>
-        <Link to="/cookies" className="transition-colors hover:text-[#3B2B1A]">Cookies</Link>
+        {(() => {
+          // Extract filter context from URL to show in breadcrumb
+          const params = new URLSearchParams(location.search);
+          const returnFilters = params.get('returnFilters');
+          const filterParams = returnFilters ? new URLSearchParams(returnFilters) : null;
+          const dietary = filterParams?.get('dietary');
+          const types = filterParams?.get('types');
+          const search = filterParams?.get('search');
+          
+          let contextLabel = 'Cookies';
+          const contexts: string[] = [];
+          if (search) contexts.push(`"${search}"`);
+          if (dietary) contexts.push(dietary.split(',').map(f => {
+            const label = dietaryFilters.find(df => df.value === f)?.label;
+            return label || f;
+          }).join(', '));
+          if (types) contexts.push(types.split(',').map(f => {
+            const label = productTypeFilters.find(pf => pf.value === f)?.label;
+            return label || f;
+          }).join(', '));
+          
+          if (contexts.length > 0) {
+            contextLabel = `Cookies (${contexts.join(' • ')})`;
+          }
+          
+          // Preserve filters when returning to catalogue
+          const catalogueUrl = returnFilters ? `/cookies?${returnFilters}` : '/cookies';
+          
+          return (
+            <Link to={catalogueUrl} className="transition-colors hover:text-[#3B2B1A]">
+              {contextLabel}
+            </Link>
+          );
+        })()}
         <span aria-hidden="true">›</span>
         <span className="text-[#3B2B1A] font-semibold">{cookie.name}</span>
       </nav>
@@ -207,7 +256,7 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="inline-flex items-center justify-center rounded-full bg-[#E2B97F] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(226,185,127,0.35)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D7A86A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#B98042]"
+                className="inline-flex items-center justify-center rounded-full bg-[#C47A41] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(196,122,65,0.35)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D48B52] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#B98042]"
               >
                 Add to Cart
               </button>
@@ -430,8 +479,13 @@ export default function ProductDetailPage() {
           </div>
           <button
             type="button"
-            onClick={() => navigate('/cookies')}
-            className="inline-flex w-fit items-center justify-center gap-2 rounded-full bg-[#3B2B1A] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#2A1C12] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#E2B97F]"
+            onClick={() => {
+              // Restore filter state when returning to catalogue
+              const params = new URLSearchParams(location.search);
+              const returnFilters = params.get('returnFilters');
+              navigate(returnFilters ? `/cookies?${returnFilters}` : '/cookies');
+            }}
+            className="inline-flex w-fit items-center justify-center gap-2 rounded-full bg-[#C47A41] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D48B52] hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#E2B97F]"
           >
             <span>←</span>
             <span>Back to Catalogue</span>
@@ -449,7 +503,7 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={handleAddToCart}
-              className="inline-flex flex-1 items-center justify-center rounded-full bg-[#E2B97F] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(226,185,127,0.35)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D7A86A]"
+              className="inline-flex flex-1 items-center justify-center rounded-full bg-[#C47A41] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(196,122,65,0.35)] transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:bg-[#D48B52]"
             >
               Add to Cart
             </button>

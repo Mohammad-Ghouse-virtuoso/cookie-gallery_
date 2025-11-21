@@ -20,6 +20,7 @@ type OrderData = {
   cardBrand?: string;
   cardLast4?: string;
   customerEmail?: string;
+  receiptUrl?: string | null;
 };
 
 export default function OrderSuccess() {
@@ -91,6 +92,52 @@ export default function OrderSuccess() {
                 <span className="font-medium text-green-600 capitalize">{orderData.paymentStatus}</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Receipt Button - if available */}
+        {orderData && orderData.receiptUrl && (
+          <div className="mt-6 rounded-xl border border-[rgba(99,102,241,0.2)] bg-gradient-to-br from-[#F0F1FF] to-[#FAFBFF] p-5 shadow-md">
+            <div className="mb-3 flex items-center gap-2">
+              <svg 
+                className="h-5 w-5 text-[#4F46E5]" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                />
+              </svg>
+              <h3 className="text-sm font-semibold text-[#4F46E5]">Official Receipt Available</h3>
+            </div>
+            <p className="mb-4 text-xs text-[#6366F1]">
+              Download your official payment receipt from Stripe for your records.
+            </p>
+            <a
+              href={orderData.receiptUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4F46E5] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_16px_rgba(99,102,241,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_12px_24px_rgba(99,102,241,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:ring-offset-2"
+            >
+              <svg 
+                className="h-4 w-4" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                />
+              </svg>
+              View Receipt
+            </a>
           </div>
         )}
 
