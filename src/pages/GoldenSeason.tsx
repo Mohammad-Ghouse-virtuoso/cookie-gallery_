@@ -82,6 +82,17 @@ export default function GoldenSeason() {
     <main className="font-inter antialiased">
       <GoldenSeasonHero />
 
+      {/* Limited Edition Badge */}
+      <div className="mx-auto max-w-5xl px-4 py-6">
+        <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-100 to-yellow-50 border-2 border-amber-300 px-4 py-2 shadow-md">
+          <span className="text-2xl">✨</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-amber-900 uppercase tracking-wider">Limited Edition</span>
+            <span className="text-xs text-amber-700">Seasonal collection • Available while supplies last</span>
+          </div>
+        </div>
+      </div>
+
       <SectionDivider color="#dba661" />
 
       <section
@@ -149,7 +160,7 @@ export default function GoldenSeason() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                View cookie catalogue
+                Browse Always-Available Collection
               </button>
             </div>
           </div>

@@ -189,20 +189,50 @@ const CookieCard: React.FC<CookieCardProps> = ({ cookie, quantity, onChange, onS
         </p>
       )}
 
-      {/* Details Button */}
-      <button
-        onClick={onShowDetails}
-        className="w-full px-5 py-2 bg-[#5b3a20] text-white text-sm font-semibold hover:bg-[#3a2310] hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2"
-        style={{
-          borderRadius: 'var(--radius-sm)',
-          boxShadow: 'var(--shadow-light)',
-          transition: 'all var(--duration-small) ease'
-        }}
-        aria-label={`View details for ${cookie.name}`}
-        type="button"
-      >
-        View Details
-      </button>
+      {/* Details Button or View Cart when added */}
+      {quantity > 0 ? (
+        <div className="flex gap-2">
+          <button
+            onClick={onShowDetails}
+            className="flex-1 px-5 py-2 bg-white border-2 border-[#5b3a20] text-[#5b3a20] text-sm font-semibold hover:bg-[#f8eddc] hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2"
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              transition: 'all var(--duration-small) ease'
+            }}
+            aria-label={`View details for ${cookie.name}`}
+            type="button"
+          >
+            Details
+          </button>
+          <button
+            onClick={() => window.location.href = '/checkout'}
+            className="flex-1 px-5 py-2 bg-[#5b3a20] text-white text-sm font-semibold hover:bg-[#3a2310] hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2"
+            style={{
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: 'var(--shadow-light)',
+              transition: 'all var(--duration-small) ease'
+            }}
+            aria-label="View cart"
+            type="button"
+          >
+            View Cart
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onShowDetails}
+          className="w-full px-5 py-2 bg-[#5b3a20] text-white text-sm font-semibold hover:bg-[#3a2310] hover:-translate-y-0.5 active:scale-95 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-gold)] focus:ring-offset-2"
+          style={{
+            borderRadius: 'var(--radius-sm)',
+            boxShadow: 'var(--shadow-light)',
+            transition: 'all var(--duration-small) ease'
+          }}
+          aria-label={`View details for ${cookie.name}`}
+          type="button"
+        >
+          View Details
+        </button>
+      )}
     </article>
   );
 };

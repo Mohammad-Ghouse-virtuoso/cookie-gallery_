@@ -199,7 +199,10 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="text-2xl font-semibold text-[#2A1C12]">{formatPrice(cookie.price)}</div>
+            <div>
+              <div className="text-2xl font-semibold text-[#2A1C12]">{formatPrice(cookie.price)}</div>
+              <div className="text-xs text-[#8B7A68] mt-1">🇮🇳 Ships to India only</div>
+            </div>
             {quantity === 0 ? (
               <button
                 type="button"
@@ -416,6 +419,9 @@ export default function ProductDetailPage() {
         </motion.div>
       </section>
 
+      {/* Mobile spacing to prevent fixed bottom bar overlap */}
+      <div className="h-24 md:hidden" aria-hidden="true"></div>
+
       <footer className="mt-10 bg-[#E2B97F] py-5 text-white">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col gap-1">
@@ -435,7 +441,10 @@ export default function ProductDetailPage() {
 
       <div className="fixed bottom-0 left-0 right-0 z-[998] bg-white/95 p-4 backdrop-blur md:hidden">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-lg font-semibold text-[#2A1C12]">{formatPrice(cookie.price)}</span>
+          <div className="flex flex-col">
+            <span className="text-lg font-semibold text-[#2A1C12]">{formatPrice(cookie.price)}</span>
+            <span className="text-xs text-[#8B7A68]">🇮🇳 Ships to India only</span>
+          </div>
           {quantity === 0 ? (
             <button
               type="button"
