@@ -95,9 +95,9 @@ export default function OrderSuccess() {
           </div>
         )}
 
-        {/* Receipt Button - if available */}
-        {orderData && orderData.receiptUrl && (
-          <div className="mt-6 rounded-xl border border-[rgba(99,102,241,0.2)] bg-gradient-to-br from-[#F0F1FF] to-[#FAFBFF] p-5 shadow-md">
+        {/* Receipt Button - Always visible if available */}
+        {orderData?.receiptUrl && (
+          <div className="mt-6 mb-6 rounded-xl border border-[rgba(99,102,241,0.2)] bg-gradient-to-br from-[#F0F1FF] to-[#FAFBFF] p-5 shadow-md">
             <div className="mb-3 flex items-center gap-2">
               <svg 
                 className="h-5 w-5 text-[#4F46E5]" 
@@ -141,18 +141,19 @@ export default function OrderSuccess() {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            to="/"
-            className="px-6 py-3 bg-[#3B2B1A] text-white rounded-full font-bold shadow-lg hover:bg-[#4B4035] transition-transform hover:scale-105"
-          >
-            Continue Shopping
-          </Link>
+        {/* Prominent Primary CTA + Secondary Action */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link
             to="/cookies"
-            className="px-6 py-3 bg-white border-2 border-gray-300 text-gray-800 rounded-full font-bold shadow-md hover:bg-gray-50 transition-transform hover:scale-105"
+            className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full font-bold text-lg shadow-[0_12px_24px_rgba(5,150,105,0.3)] hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_16px_32px_rgba(5,150,105,0.4)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
           >
             Browse Cookies
+          </Link>
+          <Link
+            to="/"
+            className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-800 rounded-full font-semibold text-lg shadow-md hover:bg-gray-50 hover:border-gray-400 hover:scale-105 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+          >
+            Back to Home
           </Link>
         </div>
       </div>
