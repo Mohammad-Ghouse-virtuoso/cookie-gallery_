@@ -318,7 +318,7 @@ app.post('/create-payment-intent', async (req, res) => {
   if (!stripeInstance) {
     return res.status(503).json({ message: 'Payments not configured on server.' });
   }
-  const { amount, currency } = req.body;
+  const { amount, currency, customerEmail } = req.body;
   if (!amount || !currency) {
     return res.status(400).json({ message: 'Amount and currency are required.' });
   }
@@ -326,7 +326,7 @@ app.post('/create-payment-intent', async (req, res) => {
     // Convert amount to smallest currency unit (cents for USD, paise for INR)
     const amountInCents = Math.round(amount * 100);
     
-    const paymentIntent = await stripeInstance.paymentIntents.create({
+    const paymentIntentOptions = {
       amount: amountInCents,
       currency: currency.toLowerCase(),
       payment_method_types: ['card'],
@@ -334,7 +334,14 @@ app.post('/create-payment-intent', async (req, res) => {
       automatic_payment_methods: {
         enabled: false,
       },
-    });
+    };
+
+    // Add receipt_email if customer email is provided to enable Stripe receipt generation
+    if (customerEmail && typeof customerEmail === 'string' && customerEmail.includes('@')) {
+      paymentIntentOptions.receipt_email = customerEmail;
+    }
+
+    const paymentIntent = await stripeInstance.paymentIntents.create(paymentIntentOptions);
     
     if (!paymentIntent) {
       return res.status(500).json({ message: 'Error creating payment intent with Stripe.' });
@@ -616,6 +623,9 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: customerEmail || undefined,
+      payment_intent_data: {
+        receipt_email: customerEmail || undefined,
+      },
       line_items: [
         {
           quantity: 1,
@@ -972,6 +982,9 @@ app.post('/api/resume-payment', requireAuth, async (req, res) => {
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer_email: order.userEmail || undefined,
+      payment_intent_data: {
+        receipt_email: order.userEmail || undefined,
+      },
       line_items: [
         {
           quantity: 1,
