@@ -95,36 +95,40 @@ export default function OrderSuccess() {
           </div>
         )}
 
-        {/* Receipt Button - Always visible if available */}
+        {/* Receipt Button - Stripe Official Receipt */}
         {orderData?.receiptUrl && (
-          <div className="mt-6 mb-6 rounded-xl border border-[rgba(99,102,241,0.2)] bg-gradient-to-br from-[#F0F1FF] to-[#FAFBFF] p-5 shadow-md">
-            <div className="mb-3 flex items-center gap-2">
-              <svg 
-                className="h-5 w-5 text-[#4F46E5]" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
-                />
-              </svg>
-              <h3 className="text-sm font-semibold text-[#4F46E5]">Official Receipt Available</h3>
+          <div className="mt-6 mb-6 rounded-xl border-2 border-[#635BFF] bg-gradient-to-br from-[#F6F5FF] to-[#FAFAFF] p-6 shadow-lg">
+            <div className="mb-4 flex items-start gap-3">
+              <div className="rounded-lg bg-[#635BFF] p-2">
+                <svg 
+                  className="h-6 w-6 text-white" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-[#0A2540]">Official Payment Receipt</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  View your itemized Stripe receipt with transaction details, tax information, and payment method.
+                </p>
+              </div>
             </div>
-            <p className="mb-4 text-xs text-[#6366F1]">
-              Download your official payment receipt from Stripe for your records.
-            </p>
             <a
               href={orderData.receiptUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#6366F1] to-[#4F46E5] px-6 py-3 text-sm font-bold text-white shadow-[0_8px_16px_rgba(99,102,241,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_12px_24px_rgba(99,102,241,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4F46E5] focus-visible:ring-offset-2"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] px-6 py-4 text-base font-bold text-white shadow-[0_8px_16px_rgba(99,91,255,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5248E5] hover:shadow-[0_12px_24px_rgba(99,91,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF] focus-visible:ring-offset-2"
             >
               <svg 
-                className="h-4 w-4" 
+                className="h-5 w-5" 
                 fill="none" 
                 viewBox="0 0 24 24" 
                 stroke="currentColor"
@@ -133,11 +137,32 @@ export default function OrderSuccess() {
                   strokeLinecap="round" 
                   strokeLinejoin="round" 
                   strokeWidth={2} 
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
+                />
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
                 />
               </svg>
-              View Receipt
+              View Billing Details
             </a>
+          </div>
+        )}
+
+        {/* Debug info for testing (only when receiptUrl is missing) */}
+        {orderData && !orderData.receiptUrl && (
+          <div className="mt-6 mb-6 rounded-xl border-2 border-amber-400 bg-amber-50 p-6">
+            <div className="mb-2 flex items-center gap-2">
+              <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-sm font-bold text-amber-800">Receipt Not Yet Available</h3>
+            </div>
+            <p className="text-xs text-amber-700">
+              Official receipt is being generated by Stripe. Please check your email or refresh this page in a few moments.
+            </p>
           </div>
         )}
 
