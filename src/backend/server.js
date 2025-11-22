@@ -430,6 +430,11 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
       }
     }
 
+    // Debug logging for receipt URL
+    logger.info('🔍 PaymentIntent receipt_email:', paymentIntent.receipt_email);
+    logger.info('🔍 Charge receipt_url:', charge?.receipt_url);
+    logger.info('🔍 Charge ID:', charge?.id);
+
     // Build safe details with fallbacks
     const paymentDetails = {
       // Card details (safe - no sensitive data)
@@ -459,7 +464,10 @@ app.post('/get-payment-details', requireAuth, async (req, res) => {
       chargeId: charge?.id || null,
     };
 
-    logger.info('✅ Payment details retrieved successfully');
+    logger.info('✅ Payment details retrieved successfully', { 
+      hasReceiptUrl: !!paymentDetails.receiptUrl,
+      receiptEmail: paymentIntent.receipt_email 
+    });
     res.status(200).json({ success: true, paymentDetails });
   } catch (error) {
     logger.error('❌ Error retrieving payment details:', error);
@@ -746,18 +754,25 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
     if (status === 'pending' && stripeInstance && order.providerSessionId) {
       try {
         const session = await stripeInstance.checkout.sessions.retrieve(order.providerSessionId, { expand: ['payment_intent'] });
+        
+        // Extract payment_intent ID (it's an object when expanded, string otherwise)
+        const paymentIntentId = typeof session.payment_intent === 'object' 
+          ? session.payment_intent?.id 
+          : session.payment_intent;
+        
         providerInfo = {
           id: session.id,
           payment_status: session.payment_status,
           status: session.status,
           amount_total: session.amount_total,
+          payment_intent: paymentIntentId,
         };
         if (session.payment_status === 'paid') {
           status = 'completed';
           await docRef.update({
             status,
             providerInfo,
-            paymentIntentId: session.payment_intent || null,
+            paymentIntentId: paymentIntentId || null,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           });
           logPaymentEvent('order_marked_completed_poll', { localOrderId: orderId, sessionId: session.id });
@@ -864,12 +879,18 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
     let lastKnownError = orderData.lastKnownError || null;
 
     if (session) {
+      // Extract payment_intent ID (it's an object when expanded, string otherwise)
+      const paymentIntentId = typeof session.payment_intent === 'object' 
+        ? session.payment_intent?.id 
+        : session.payment_intent;
+      
       const updateFields = {
         providerInfo: {
           id: session.id,
           payment_status: session.payment_status,
           status: session.status,
           amount_total: session.amount_total,
+          payment_intent: paymentIntentId,
         },
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
@@ -880,7 +901,7 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
         if (docRef) {
           await docRef.set({
             status,
-            paymentIntentId: session.payment_intent || null,
+            paymentIntentId: paymentIntentId || null,
             lastKnownError: admin.firestore.FieldValue.delete(),
             ...updateFields,
           }, { merge: true });
