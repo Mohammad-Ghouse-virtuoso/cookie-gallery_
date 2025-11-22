@@ -227,7 +227,7 @@ export default function PaymentStatusPage() {
     resetPendingOrderState(true);
   }, [clearFallbackTimer, resetPendingOrderState]);
 
-  const finalizeAndRedirect = useCallback((messageText = 'Payment confirmed. Redirecting…') => {
+  const finalizeAndRedirect = useCallback(async (messageText = 'Payment confirmed. Redirecting…') => {
     if (hasFinalizedRef.current) {
       return;
     }
@@ -236,7 +236,80 @@ export default function PaymentStatusPage() {
     clearLocalCheckoutState();
     setState('success');
     setMessage(messageText);
-  }, [cancelInflightRequest, clearLocalCheckoutState]);
+
+    // Fetch order details to pass to success page
+    const orderId = targetOrderId || pendingOrder?.localOrderId;
+    if (orderId) {
+      try {
+        const token = !authDisabled ? await getIdToken() : null;
+        const orderResponse = await fetch(`${API_BASE}/api/order-status?orderId=${encodeURIComponent(orderId)}`, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (orderResponse.ok) {
+          const orderDataRaw = await orderResponse.json();
+          const paymentIntentId = orderDataRaw.providerInfo?.payment_intent || null;
+
+          let receiptUrl = null;
+          let cardBrand = null;
+          let cardLast4 = null;
+
+          // Fetch payment details if we have payment intent
+          if (paymentIntentId) {
+            const detailsResponse = await fetch(`${API_BASE}/get-payment-details`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({ paymentIntentId }),
+            });
+
+            if (detailsResponse.ok) {
+              const details = await detailsResponse.json();
+              receiptUrl = details.paymentDetails?.receiptUrl || null;
+              cardBrand = details.paymentDetails?.cardBrand || null;
+              cardLast4 = details.paymentDetails?.cardLast4 || null;
+            }
+          }
+
+          // Build order items from cart
+          const orderItems = pendingOrder?.cart
+            ? Object.entries(pendingOrder.cart).map(([id, qty]) => {
+                const detail = pendingOrder.cartDetails?.[id];
+                return {
+                  id,
+                  name: detail?.name || id,
+                  qty,
+                  price: detail?.price || 0,
+                  image: detail?.image,
+                };
+              })
+            : [];
+
+          // Store order data in sessionStorage to pass to success page
+          sessionStorage.setItem('orderSuccessData', JSON.stringify({
+            orderId: orderId,
+            items: orderItems,
+            totalAmount: orderDataRaw.totalAmount || 0,
+            paymentStatus: 'succeeded',
+            customerEmail: user?.email || orderDataRaw.userEmail,
+            receiptUrl,
+            cardBrand,
+            cardLast4,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch order details:', error);
+        // Continue with redirect anyway
+      }
+    }
+  }, [cancelInflightRequest, clearLocalCheckoutState, targetOrderId, pendingOrder, authDisabled, user]);
 
   const scheduleFallbackRedirect = useCallback(() => {
     if (fallbackTimerRef.current) {
@@ -380,7 +453,11 @@ export default function PaymentStatusPage() {
       setCountdown(prev => {
         if (prev <= 1) {
           window.clearInterval(interval);
-          navigate(targetSuccessPath, { replace: true });
+          // Get order data from sessionStorage
+          const storedData = sessionStorage.getItem('orderSuccessData');
+          const orderData = storedData ? JSON.parse(storedData) : null;
+          sessionStorage.removeItem('orderSuccessData');
+          navigate(targetSuccessPath, { replace: true, state: orderData });
           return 0;
         }
         return prev - 1;
@@ -428,7 +505,12 @@ export default function PaymentStatusPage() {
             <button
               type="button"
               className="text-sm font-semibold text-[#C47A41] underline-offset-2 hover:underline"
-              onClick={() => navigate(targetSuccessPath, { replace: true })}
+              onClick={() => {
+                const storedData = sessionStorage.getItem('orderSuccessData');
+                const orderData = storedData ? JSON.parse(storedData) : null;
+                sessionStorage.removeItem('orderSuccessData');
+                navigate(targetSuccessPath, { replace: true, state: orderData });
+              }}
             >
               Skip to confirmation now
             </button>
