@@ -22,6 +22,7 @@ import GiftModal from "./components/gifting/GiftModal";
 import GiftExperiencePage from "./pages/gift/GiftExperiencePage";
 import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
 import PaymentStatusPage from "./pages/PaymentStatus";
+import Receipt from "./pages/Receipt";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
 import CartPersistenceBanner from "./components/CartPersistenceBanner";
@@ -59,6 +60,7 @@ function AppContent() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signed-out" element={<SignedOut />} />
         <Route path="/order-success" element={<OrderSuccess />} />
+        <Route path="/receipt" element={<Receipt />} />
         {/* Protected routes (these will have the NavBar rendered) */}
         <Route path="/" element={<ProtectedRoutes />}>
           {/* Explicit home route to support navigate('/home') after sign-in */}
