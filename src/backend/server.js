@@ -792,7 +792,19 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
     }
 
     const lastUpdate = order.updatedAt?.toDate ? order.updatedAt.toDate().toISOString() : null;
-    res.status(200).json({ status, providerInfo, lastUpdate });
+    
+    // Return complete order details for success page
+    res.status(200).json({ 
+      status, 
+      providerInfo, 
+      lastUpdate,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+      userEmail: order.userEmail,
+      cart: order.cart,
+      shippingAddress: order.shippingAddress,
+      createdAt: order.createdAt?.toDate ? order.createdAt.toDate().toISOString() : null,
+    });
   } catch (error) {
     logger.error('Error fetching order status', error);
     res.status(500).json({ message: 'Failed to load order status.' });

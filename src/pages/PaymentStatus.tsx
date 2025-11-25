@@ -278,15 +278,16 @@ export default function PaymentStatusPage() {
             }
           }
 
-          // Build order items from cart
-          const orderItems = pendingOrder?.cart
-            ? Object.entries(pendingOrder.cart).map(([id, qty]) => {
-                const detail = pendingOrder.cartDetails?.[id];
+          // Build order items from the cart stored in backend (more reliable than pendingOrder)
+          const orderItems = orderDataRaw.cart
+            ? Object.entries(orderDataRaw.cart).map(([id, qty]) => {
+                // Try to get details from pendingOrder first (has images), fallback to just the data we have
+                const detail = pendingOrder?.cartDetails?.[id];
                 return {
                   id,
-                  name: detail?.name || id,
-                  qty,
-                  price: detail?.price || 0,
+                  name: detail?.name || id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  qty: typeof qty === 'number' ? qty : 1,
+                  price: detail?.price || (orderDataRaw.totalAmount / Object.values(orderDataRaw.cart).reduce((sum: number, q: any) => sum + (typeof q === 'number' ? q : 1), 0)),
                   image: detail?.image,
                 };
               })
@@ -302,6 +303,8 @@ export default function PaymentStatusPage() {
             receiptUrl,
             cardBrand,
             cardLast4,
+            paidAt: orderDataRaw.createdAt || new Date().toISOString(),
+            transactionId: paymentIntentId || orderId,
           }));
         }
       } catch (error) {
