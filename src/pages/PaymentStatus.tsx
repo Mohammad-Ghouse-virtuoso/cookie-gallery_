@@ -278,17 +278,23 @@ export default function PaymentStatusPage() {
             }
           }
 
-          // Build order items from the cart stored in backend (more reliable than pendingOrder)
+          // Import cookies data to get images
+          const cookiesModule = await import('@/data/cookies');
+          const cookiesData = cookiesModule.cookies;
+
+          // Build order items from the cart stored in backend with proper images
           const orderItems = orderDataRaw.cart
             ? Object.entries(orderDataRaw.cart).map(([id, qty]) => {
-                // Try to get details from pendingOrder first (has images), fallback to just the data we have
-                const detail = pendingOrder?.cartDetails?.[id];
+                // Get cookie details from cookies.ts for accurate data including images
+                const cookieData = cookiesData.find((c: any) => c.id === id);
+                // Fallback to pendingOrder if cookie not found in static data
+                const detail = cookieData || pendingOrder?.cartDetails?.[id];
                 return {
                   id,
                   name: detail?.name || id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                   qty: typeof qty === 'number' ? qty : 1,
                   price: detail?.price || (orderDataRaw.totalAmount / Object.values(orderDataRaw.cart).reduce((sum: number, q: any) => sum + (typeof q === 'number' ? q : 1), 0)),
-                  image: detail?.image,
+                  image: detail?.src || detail?.image,
                 };
               })
             : [];

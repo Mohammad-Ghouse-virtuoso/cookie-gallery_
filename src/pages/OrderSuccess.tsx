@@ -3,6 +3,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { formatPrice } from '@/utils/formatPrice';
 import orderPlacedBanner from '../assets/Order-placed-Banner.png';
+import { useEffect } from 'react';
+import confetti from 'canvas-confetti';
 
 type OrderItem = {
   id: string;
@@ -26,6 +28,46 @@ type OrderData = {
 export default function OrderSuccess() {
   const location = useLocation();
   const orderData = location.state as OrderData | null;
+
+  useEffect(() => {
+    // Large confetti burst for celebration
+    const count = 200;
+    const defaults = {
+      origin: { y: 0.7 },
+      zIndex: 9999,
+    };
+
+    function fire(particleRatio: number, opts: confetti.Options) {
+      confetti({
+        ...defaults,
+        ...opts,
+        particleCount: Math.floor(count * particleRatio),
+      });
+    }
+
+    fire(0.25, {
+      spread: 26,
+      startVelocity: 55,
+    });
+    fire(0.2, {
+      spread: 60,
+    });
+    fire(0.35, {
+      spread: 100,
+      decay: 0.91,
+      scalar: 0.8,
+    });
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 25,
+      decay: 0.92,
+      scalar: 1.2,
+    });
+    fire(0.1, {
+      spread: 120,
+      startVelocity: 45,
+    });
+  }, []);
 
   return (
     <main className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-teal-50 text-center p-4 font-inter antialiased">
@@ -97,9 +139,9 @@ export default function OrderSuccess() {
 
         {/* Receipt Button - Always Available */}
         {orderData && (
-          <div className="mt-6 mb-6 rounded-xl border-2 border-[#635BFF] bg-gradient-to-br from-[#F6F5FF] to-[#FAFAFF] p-6 shadow-lg">
+          <div className="mt-6 mb-6 rounded-2xl border border-[#E2B97F]/30 bg-gradient-to-br from-[#FFF9F0] via-white to-[#FEF5E7] p-6 shadow-[0_4px_20px_rgba(196,122,65,0.08)]">
             <div className="mb-4 flex items-start gap-3">
-              <div className="rounded-lg bg-[#635BFF] p-2">
+              <div className="rounded-xl bg-gradient-to-br from-[#D4A574] to-[#C47A41] p-2.5 shadow-sm">
                 <svg 
                   className="h-6 w-6 text-white" 
                   fill="none" 
@@ -124,7 +166,7 @@ export default function OrderSuccess() {
             <Link
               to="/receipt"
               state={orderData}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#635BFF] px-6 py-4 text-base font-bold text-white shadow-[0_8px_16px_rgba(99,91,255,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5248E5] hover:shadow-[0_12px_24px_rgba(99,91,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#635BFF] focus-visible:ring-offset-2"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#D4A574] to-[#C47A41] px-6 py-3.5 text-base font-semibold text-white shadow-[0_2px_12px_rgba(196,122,65,0.2)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(196,122,65,0.3)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] focus-visible:ring-offset-2"
             >
               <svg 
                 className="h-5 w-5" 
@@ -154,13 +196,16 @@ export default function OrderSuccess() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link
             to="/cookies"
-            className="px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-full font-bold text-lg shadow-[0_12px_24px_rgba(5,150,105,0.3)] hover:-translate-y-0.5 hover:scale-105 hover:shadow-[0_16px_32px_rgba(5,150,105,0.4)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2"
+            className="group px-10 py-4 bg-gradient-to-br from-[#D9845A] via-[#C97550] to-[#B86648] text-white rounded-2xl font-bold text-lg shadow-[0_4px_20px_rgba(184,102,72,0.25)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(184,102,72,0.35)] active:translate-y-0 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C97550] focus-visible:ring-offset-2 relative overflow-hidden"
           >
-            Browse Cookies
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-2xl" />
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              🍪 Browse Cookies
+            </span>
           </Link>
           <Link
             to="/"
-            className="px-8 py-4 bg-white border-2 border-gray-300 text-gray-800 rounded-full font-semibold text-lg shadow-md hover:bg-gray-50 hover:border-gray-400 hover:scale-105 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+            className="px-10 py-4 bg-white border-2 border-[#E2B97F]/40 text-[#5B4636] rounded-2xl font-semibold text-lg shadow-sm hover:bg-[#FFF9F0] hover:border-[#D4A574] hover:-translate-y-0.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] focus-visible:ring-offset-2"
           >
             Back to Home
           </Link>
