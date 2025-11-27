@@ -4,6 +4,7 @@ import { useCart } from '@/context/CartContext';
 import { clearPendingOrder, loadPendingOrder, updatePendingOrderStatus } from '@/lib/pendingOrderStorage';
 import { useAuth } from '@/context/AuthContext';
 import type { PendingOrderSnapshot, PendingOrderStatus } from '@/types/checkout';
+import type { CookieData } from '@/data/cookies';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -286,15 +287,17 @@ export default function PaymentStatusPage() {
           const orderItems = orderDataRaw.cart
             ? Object.entries(orderDataRaw.cart).map(([id, qty]) => {
                 // Get cookie details from cookies.ts for accurate data including images
-                const cookieData = cookiesData.find((c: any) => c.id === id);
+                const cookieData = cookiesData.find((c: CookieData) => c.id === id);
                 // Fallback to pendingOrder if cookie not found in static data
-                const detail = cookieData || pendingOrder?.cartDetails?.[id];
+                const cartDetail = pendingOrder?.cartDetails?.[id];
+                // CookieData uses 'src', CartLineItemDetail uses 'image'
+                const imageSrc = cookieData?.src || cartDetail?.image;
                 return {
                   id,
-                  name: detail?.name || id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                  name: cookieData?.name || cartDetail?.name || id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                   qty: typeof qty === 'number' ? qty : 1,
-                  price: detail?.price || (orderDataRaw.totalAmount / Object.values(orderDataRaw.cart).reduce((sum: number, q: any) => sum + (typeof q === 'number' ? q : 1), 0)),
-                  image: detail?.src || detail?.image,
+                  price: cookieData?.price || cartDetail?.price || (orderDataRaw.totalAmount / Object.values(orderDataRaw.cart).reduce((sum: number, q: any) => sum + (typeof q === 'number' ? q : 1), 0)),
+                  image: imageSrc,
                 };
               })
             : [];
