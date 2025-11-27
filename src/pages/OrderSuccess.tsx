@@ -195,19 +195,19 @@ export default function OrderSuccess() {
         {/* Prominent Primary CTA + Secondary Action */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link
-            to="/cookies"
-            className="group px-10 py-4 bg-gradient-to-br from-[#D9845A] via-[#C97550] to-[#B86648] text-white rounded-2xl font-bold text-lg shadow-[0_4px_20px_rgba(184,102,72,0.25)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(184,102,72,0.35)] active:translate-y-0 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C97550] focus-visible:ring-offset-2 relative overflow-hidden"
+            to="/orders"
+            className="group px-10 py-4 bg-gradient-to-br from-[#D4A574] to-[#C47A41] text-white rounded-2xl font-bold text-lg shadow-[0_4px_20px_rgba(196,122,65,0.25)] hover:-translate-y-1 hover:shadow-[0_8px_32px_rgba(196,122,65,0.35)] active:translate-y-0 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] focus-visible:ring-offset-2 relative overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent rounded-2xl" />
             <span className="relative z-10 flex items-center justify-center gap-2">
-              🍪 Browse Cookies
+              📦 View My Orders
             </span>
           </Link>
           <Link
-            to="/"
+            to="/cookies"
             className="px-10 py-4 bg-white border-2 border-[#E2B97F]/40 text-[#5B4636] rounded-2xl font-semibold text-lg shadow-sm hover:bg-[#FFF9F0] hover:border-[#D4A574] hover:-translate-y-0.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41] focus-visible:ring-offset-2"
           >
-            Back to Home
+            🍪 Browse Cookies
           </Link>
         </div>
       </div>

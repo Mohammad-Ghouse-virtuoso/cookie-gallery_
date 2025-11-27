@@ -1,12 +1,12 @@
 // src/components/NavBar.tsx
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaCookieBite } from 'react-icons/fa';
+import { FiPackage, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import CartPreviewModal, { type CartPreviewItem, type CartTotals } from './CartPreviewModal';
 import { hasCheckoutAddress } from '@/lib/checkoutAddressStorage';
-import AnimatedSignOutButton from './AnimatedSignOutButton';
 import AnimatedCartButton from './AnimatedCartButton';
 import { cookies as allCookies } from '@/data/cookies';
 import styled from 'styled-components';
@@ -19,6 +19,22 @@ export default function NavBar() {
   const location = useLocation();
   const { cart, setCart } = useCart();
   const [showCart, setShowCart] = useState(false);
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Close avatar menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(event.target as Node)) {
+        setShowAvatarMenu(false);
+      }
+    }
+    if (showAvatarMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showAvatarMenu]);
+
   const cookieLookup = useMemo(() => {
     const map = new Map<string, (typeof allCookies)[number]>();
     allCookies.forEach(cookie => map.set(cookie.id, cookie));
@@ -136,22 +152,68 @@ export default function NavBar() {
               quantity={cartBadgeCount}
             />
 
-            {/* Identity avatar (real user or guest placeholder) */}
-            <div className="relative group select-none">
-              {user?.photoURL ? (
-                <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-[#f8eddc]" />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
-                  {(user?.email || 'G').slice(0,1).toUpperCase()}
+            {/* Identity avatar with dropdown menu */}
+            <div className="relative" ref={avatarMenuRef}>
+              <button
+                onClick={() => setShowAvatarMenu(!showAvatarMenu)}
+                className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#dba661] focus-visible:ring-offset-2 rounded-full transition-transform duration-200 hover:scale-105"
+                aria-label="User menu"
+                aria-expanded={showAvatarMenu}
+              >
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-[#f8eddc]" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
+                    {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
+                  </div>
+                )}
+              </button>
+              
+              {/* Dropdown Menu */}
+              {showAvatarMenu && (
+                <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-[#dba661]/20 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* User info header */}
+                  <div className="px-4 py-3 border-b border-[#f8eddc]">
+                    <p className="text-sm font-semibold text-[#5b3a20] truncate">
+                      {user?.displayName || user?.email || user?.phoneNumber || 'Guest'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
+                      {user?.email || user?.phoneNumber || 'Guest checkout enabled'}
+                    </p>
+                  </div>
+                  
+                  {/* Menu items */}
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        setShowAvatarMenu(false);
+                        navigate('/orders');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150"
+                    >
+                      <FiPackage className="w-4 h-4 text-[#dba661]" />
+                      <span>My Orders</span>
+                    </button>
+                  </div>
+                  
+                  {/* Sign out */}
+                  {user && (
+                    <div className="border-t border-[#f8eddc] pt-1">
+                      <button
+                        onClick={() => {
+                          setShowAvatarMenu(false);
+                          handleSignOutClick();
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                      >
+                        <FiLogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
-              <div className="absolute -left-2 top-11 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-white text-gray-700 text-xs px-3 py-2 rounded-xl shadow-md whitespace-nowrap border border-[#dba661]/20">
-                {user?.email || 'Guest checkout enabled'}
-              </div>
             </div>
-
-            {/* Animated Sign Out Button - only when a real user session exists */}
-            {user ? <AnimatedSignOutButton onClick={handleSignOutClick} /> : null}
           </>
         ) : (
           <Link

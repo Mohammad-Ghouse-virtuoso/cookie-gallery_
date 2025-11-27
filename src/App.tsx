@@ -23,6 +23,7 @@ import GiftExperiencePage from "./pages/gift/GiftExperiencePage";
 import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
 import PaymentStatusPage from "./pages/PaymentStatus";
 import Receipt from "./pages/Receipt";
+import OrdersPage from "./pages/OrdersPage";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
 import CartPersistenceBanner from "./components/CartPersistenceBanner";
@@ -77,6 +78,7 @@ function AppContent() {
             element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
           />
           <Route path="payment-status" element={<PaymentStatusPage />} />
+          <Route path="orders" element={<OrdersPage />} />
           <Route path="story" element={<Story />} />
           <Route path="behind-the-scenes" element={<BehindTheScenes />} />
           <Route path="privacy" element={<PrivacyPolicy />} />

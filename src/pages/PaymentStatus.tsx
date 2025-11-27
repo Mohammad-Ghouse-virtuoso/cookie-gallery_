@@ -5,6 +5,7 @@ import { clearPendingOrder, loadPendingOrder, updatePendingOrderStatus } from '@
 import { useAuth } from '@/context/AuthContext';
 import type { PendingOrderSnapshot, PendingOrderStatus } from '@/types/checkout';
 import type { CookieData } from '@/data/cookies';
+import { addSessionOrder } from '@/lib/sessionOrderStorage';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -315,6 +316,15 @@ export default function PaymentStatusPage() {
             paidAt: orderDataRaw.createdAt || new Date().toISOString(),
             transactionId: paymentIntentId || orderId,
           }));
+          
+          // Also store in session orders for the Orders page
+          addSessionOrder({
+            orderId: orderId,
+            totalAmount: orderDataRaw.totalAmount || 0,
+            itemCount: orderItems.reduce((sum, item) => sum + item.qty, 0),
+            createdAt: orderDataRaw.createdAt || new Date().toISOString(),
+            items: orderItems,
+          });
         }
       } catch (error) {
         console.error('Failed to fetch order details:', error);
