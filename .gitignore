@@ -40,6 +40,11 @@ src/backend/*.log
 # Operating System generated files
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
+
+# npm cache (accidentally created on Windows)
+C:\npm-cache/
+npm-cache/
 
 # IDE and editor directories
 # These are user-specific editor configurations
