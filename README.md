@@ -1,228 +1,96 @@
 # 🍪 Cookie Gallery
 
-A modern, full-stack e-commerce application for a cookie store. Built with React, Firebase, and Node.js, it delivers smooth shopping experiences, secure authentication, and seamless payment processing via Razorpay.
+[![CI](https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery_stripe/actions/workflows/ci.yml/badge.svg)](https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery_stripe/actions)
+[![Vercel](https://img.shields.io/badge/Deployed-Vercel-black?logo=vercel)](https://cookie-gallery.vercel.app)
 
-## ✨ Features
+**Full-stack e-commerce cookie store** with Stripe payments, Firebase auth, and 155+ automated tests.
 
-### 🔐 **Authentication & User Management**
-- Google OAuth and Phone OTP via Firebase
-- Role-based route protection
-- Automatic profile creation and Firestore integration
-- Persistent login with local storage
+## 🚀 Quick Start
 
-### 🛒 **E-commerce Functionality**
-- **Real-time cart (add, remove, update quantities)
-- **Razorpay integration with signature verification
-- **Order creation, verification, and tracking
-- **Live updates for cart and payment status
+```bash
+# Clone
+git clone https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery_stripe.git
+cd cookie-gallery_stripe
 
+# Install
+npm install
+cd src/backend && npm install && cd ../..
 
-### 🎨 **User Interface & Experience**
-- Clean, responsive design with Tailwind CSS
-- Smooth transitions and hover animations
-- Animated testimonials with auto-scroll
-- Mobile-first design
-- Dedicated gifting journey at `/gift/:boxId` with a calm, tactile layout (modal fallback on small screens)
+# Configure (copy and fill in your keys)
+cp .env.example .env
+cp src/backend/.env.example src/backend/.env
 
-Loading skeletons and animations
-### 📱 **Additional Pages & Content**
-- Story (timeline view of brand journey)
-- Behind the Scenes (cookie-making process)
-- Privacy Policy
-- Order Success confirmation with tracking
+# Run
+npm run dev          # Frontend: http://localhost:5173
+cd src/backend && node server.js  # Backend: http://localhost:5000
+```
 
 ## 🛠️ Tech Stack
 
-| Frontend                                                  | Backend                                                              | Database & Auth                                             | Payment                           |
-| --------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------- | --------------------------------- |
-| [React 19](https://reactjs.org/)                          | [Node.js](https://nodejs.org/)                                       | [Firebase Auth](https://firebase.google.com/products/auth)  | [Razorpay](https://razorpay.com/) |
-| [TypeScript](https://www.typescriptlang.org/)             | [Express 5](https://expressjs.com/)                                  | [Firestore](https://firebase.google.com/products/firestore) | Signature Verification            |
-| [Vite 7](https://vitejs.dev/)                             | [Firebase Admin SDK](https://firebase.google.com/products/admin-sdk) | Real-time DB                                                | Webhooks                          |
-| [Tailwind CSS 4](https://tailwindcss.com/)                | [Razorpay SDK](https://razorpay.com/docs/)                           | User management                                             |                                   |
-| [Framer Motion](https://www.framer.com/motion/)           | [CORS](https://www.npmjs.com/package/cors)                           |                                                             |                                   |
-| [React Router 7](https://reactrouter.com/)                | [Dotenv](https://www.npmjs.com/package/dotenv)                       |                                                             |                                   |
-| [React Icons](https://react-icons.github.io/react-icons/) | Built-in Node Crypto                                                 |                                                             |                                   |
+| Layer        | Tech                                     |
+| ------------ | ---------------------------------------- |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS |
+| **Backend**  | Node.js, Express                         |
+| **Auth**     | Firebase (Google Sign-In)                |
+| **Database** | Firestore                                |
+| **Payments** | Stripe Checkout                          |
+| **Testing**  | Vitest (80), Jest (75), Playwright       |
+| **CI/CD**    | GitHub Actions, Vercel                   |
 
-### 🎨 Warm Palette Tokens
-- `--bg-cream` & `--card-bg` — soft foundations for the gifting route
-- `--cocoa` & `--caramel` — primary action and accent tones
-- `--muted-ink` — secondary text color for longer copy
-- `--danger` — warm alert hue used for inline validation
+## ✨ Features
 
-## 🚀 Getting Started
+- 🔐 **Google Sign-In** with Firebase Auth
+- 💳 **Stripe Checkout** with secure payment flow
+- 📦 **Order History** with Firestore persistence
+- 🧾 **Custom Receipts** with confetti celebration
+- 🛒 **Session-scoped Cart** (resets on refresh by design)
+- 📱 **Fully Responsive** mobile-first design
 
-### Prerequisites
+## 🧪 Testing
 
-- **Node.js** (v18.x or later recommended)
-- **npm** (v8.x or later)
-- **Firebase Project** with Authentication and Firestore enabled
-- **Razorpay Account** with API keys
-
-### Installation & Setup
-
-# Clone repo
-git clone https://github.com/Mohammad-Ghouse-virtuoso/cookie-gallery.git
-cd cookie-gallery
-
-# Install frontend dependencies
-npm install
-
-# Install backend dependencies
-cd src/backend
-npm install
-cd ../..
-
-
-### Environment Configuration
-
-VITE_APP_TITLE=Cookie Gallery
-VITE_API_BASE_URL=http://localhost:5000
-VITE_RAZORPAY_KEY_ID=rzp_test_YourPublicKeyHere
-
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your-project-id
-VITE_FIREBASE_STORAGE_BUCKET=your-project.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-
-VITE_SHOW_AUTH_DIAGNOSTICS=true
-
-
-#### 2. **Backend Environment (\`src/backend/.env\`):**
-RAZORPAY_KEY_ID=rzp_test_YourPublicKeyHere
-RAZORPAY_KEY_SECRET=YourSecretKeyHere
-
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYourPrivateKeyHere\n-----END PRIVATE KEY-----\n"
-
-CORS_ORIGIN=http://localhost:5173
-PORT=5000
-
-
-#### 3. **Firebase Service Account Setup:**
-- Download your Firebase service account JSON file
-
-1. **Start the Backend Server:**
-   \`\`\`bash
-   # From project root
-   cd src/backend
-   node server.js
-   \`\`\`
-   Backend will run on: \`http://localhost:5000\`
-
-2. **Start the Frontend Development Server:**
-   \`\`\`bash
-   # From project root (in a new terminal)
-   npm run dev
-   \`\`\`
-   Frontend will run on: \`http://localhost:5173\`
-
-#### Production Build:
-
-\`\`\`bash
-# Build the frontend
-npm run build
-
-# Preview the build
-npm run preview
-\`\`\`
+```bash
+npm run test              # Frontend (80 tests)
+npm run test:backend      # Backend (75 tests)
+npm run test:e2e          # E2E with Playwright
+```
 
 ## 📁 Project Structure
 
-cookie-gallery/
-
-### Feature Flags
-
-- `checkoutPageEnabled` — controls the lightweight cart modal plus dedicated checkout page flow. Enabled by default. Set `VITE_FEATURE_CHECKOUT_PAGE=false` in your frontend `.env` and restart the dev server to roll back to the legacy checkout modal experience.
-
-Suggested QA when toggling the flag:
-- Confirm the cart modal fits the viewport at 320 px, 768 px, and 1280 px with item scrolling confined inside the modal.
-- Use **Proceed to Checkout** to verify navigation to `/checkout` (or the legacy modal sequence when disabled).
-- Validate address capture, offline retry messaging, and post-payment verification before approving a release.
-├── public/
+```
 ├── src/
-│   ├── assets/
-│   ├── backend/
-│   │   ├── server.js
-│   │   ├── package.json
-│   │   ├── .env
-│   │   └── firebase-admin-sdk.json
-│   ├── components/
-│   │   ├── CookieCard.tsx
-│   │   ├── Hero.tsx
-│   │   ├── NavBar.tsx
-│   │   ├── ProtectedRoutes.tsx
-│   │   └── ReviewsSection.tsx
-│   ├── context/
-│   │   ├── AuthContext.tsx
-│   │   └── CartContext.tsx
-│   ├── data/
-│   ├── pages/
-│   │   ├── Home.tsx
-│   │   ├── CheckOut.tsx
-│   │   ├── SignIn.tsx
-│   │   ├── OrderSuccess.tsx
-│   │   ├── Story.tsx
-│   │   ├── BehindTheScenes.tsx
-│   │   └── PrivacyPolicy.tsx
-│   ├── types/
-│   └── utils/
-├── .env
-├── package.json
-└── README.md
+│   ├── components/       # React components
+│   ├── pages/            # Route pages
+│   ├── context/          # Auth & Cart providers
+│   ├── backend/          # Express API server
+│   └── lib/              # Utilities & storage
+├── e2e/                  # Playwright tests
+└── .github/workflows/    # CI pipeline
+```
 
+## 🔑 Environment Variables
 
-## 🔒 Security Features
+**Frontend (`.env`)**
 
-- **Firebase Authentication**: Industry-standard auth with OAuth2
-- **Protected API Routes**: JWT token verification on backend
-- **Razorpay Signature Verification**: Payment integrity validation
-- **CORS Configuration**: Secure cross-origin resource sharing
-- **Environment Variable Protection**: Sensitive data secured
-- **Input Validation**: User input sanitization and validation
+```env
+VITE_API_BASE_URL=http://localhost:5000
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_PROJECT_ID=...
+```
 
-## 🌐 API Endpoints
+**Backend (`src/backend/.env`)**
 
-### Authentication
-- \`GET /health\` - Server health check with boot ID
-- \`POST /save-user\` - Save user profile to Firestore
-
-### Payments
-- \`POST /create-order\` - Create new Razorpay order
-- \`POST /verify-signature\` - Verify payment signature
-- \`POST /save-order-data\` - Store order in database
-- \`POST /api/razorpay-webhook\` - Handle payment webhooks
-
-## 📱 Contact Information
-
-- **Location**: Hyderabad, IN
-- **Phone**: +91-98765-43210
-- **Email**: hello@cookie.gallery
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (\`git checkout -b feature/AmazingFeature\`)
-3. Commit your changes (\`git commit -m 'Add some AmazingFeature'\`)
-4. Push to the branch (\`git push origin feature/AmazingFeature\`)
-5. Open a Pull Request
+```env
+STRIPE_SECRET_KEY=sk_test_...
+FIREBASE_PROJECT_ID=...
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
+```
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Firebase for authentication and database services
-- Razorpay for payment gateway integration
-- Tailwind CSS for beautiful styling
-- Framer Motion for smooth animations
-- React team for the amazing framework
-- Gemini, Cursor, Augment Code, Perplexity, Grok
+MIT
 
 ---
 
-**Note**: Make sure to obtain valid credentials from Razorpay and Firebase before running the application. Both services are mandatory for full functionality.
+**Built by [Mohammad Ghouse](https://github.com/Mohammad-Ghouse-virtuoso)** 🍪
