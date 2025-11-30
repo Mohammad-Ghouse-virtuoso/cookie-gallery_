@@ -152,66 +152,73 @@ export default function NavBar() {
               quantity={cartBadgeCount}
             />
 
-            {/* Identity avatar with dropdown menu */}
-            <div className="relative" ref={avatarMenuRef}>
-              <button
-                onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-                className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#dba661] focus-visible:ring-offset-2 rounded-full transition-transform duration-200 hover:scale-105"
-                aria-label="User menu"
-                aria-expanded={showAvatarMenu}
+            {/* Identity avatar with hover dropdown + Sign Out button */}
+            <div className="flex items-center gap-2">
+              {/* Avatar with hover dropdown for Orders */}
+              <div 
+                className="relative group" 
+                ref={avatarMenuRef}
+                onMouseEnter={() => setShowAvatarMenu(true)}
+                onMouseLeave={() => setShowAvatarMenu(false)}
               >
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
-                    {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
-                  </div>
-                )}
-              </button>
-              
-              {/* Dropdown Menu */}
-              {showAvatarMenu && (
-                <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-xl border border-[#dba661]/20 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {/* User info header */}
-                  <div className="px-4 py-3 border-b border-[#f8eddc]">
-                    <p className="text-sm font-semibold text-[#5b3a20] truncate">
-                      {user?.displayName || user?.email || user?.phoneNumber || 'Guest'}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {user?.email || user?.phoneNumber || 'Guest checkout enabled'}
-                    </p>
-                  </div>
-                  
-                  {/* Menu items */}
-                  <div className="py-1">
+                <button
+                  className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#dba661] focus-visible:ring-offset-2 rounded-full transition-transform duration-200 hover:scale-105"
+                  aria-label="User menu"
+                  aria-expanded={showAvatarMenu}
+                >
+                  {user?.photoURL ? (
+                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
+                      {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
+                    </div>
+                  )}
+                </button>
+                
+                {/* Hover Dropdown - Orders */}
+                <div 
+                  className={`absolute right-0 top-10 pt-2 z-50 transition-all duration-200 ${
+                    showAvatarMenu 
+                      ? 'opacity-100 visible translate-y-0' 
+                      : 'opacity-0 invisible -translate-y-1'
+                  }`}
+                >
+                  <div className="w-52 bg-white rounded-xl shadow-lg border border-[#dba661]/20 overflow-hidden">
+                    {/* User info header */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-[#fdf6ec] to-[#f8eddc]">
+                      <p className="text-sm font-semibold text-[#5b3a20] truncate">
+                        {user?.displayName || user?.email || user?.phoneNumber || 'Guest'}
+                      </p>
+                      <p className="text-xs text-[#8b6914] truncate mt-0.5">
+                        {user?.email || user?.phoneNumber || 'Guest checkout enabled'}
+                      </p>
+                    </div>
+                    
+                    {/* Orders button */}
                     <button
                       onClick={() => {
                         setShowAvatarMenu(false);
                         navigate('/orders');
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150"
                     >
                       <FiPackage className="w-4 h-4 text-[#dba661]" />
-                      <span>My Orders</span>
+                      <span className="font-medium">My Orders</span>
                     </button>
                   </div>
-                  
-                  {/* Sign out */}
-                  {user && (
-                    <div className="border-t border-[#f8eddc] pt-1">
-                      <button
-                        onClick={() => {
-                          setShowAvatarMenu(false);
-                          handleSignOutClick();
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
-                      >
-                        <FiLogOut className="w-4 h-4" />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
+              </div>
+
+              {/* Sign Out Button - Always Visible */}
+              {user && (
+                <button
+                  onClick={handleSignOutClick}
+                  className="group relative flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#fef2f2] text-red-600 text-sm font-medium transition-all duration-200 hover:bg-red-500 hover:text-white hover:shadow-md hover:scale-105 active:scale-95"
+                  aria-label="Sign out"
+                >
+                  <FiLogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
               )}
             </div>
           </>
