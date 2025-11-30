@@ -141,7 +141,7 @@ function EmptyOrdersState({ isTestUser }: { isTestUser: boolean }) {
 }
 
 // Demo mode banner for test users
-function DemoModeBanner({ onSignInWithGoogle }: { onSignInWithGoogle?: () => void }) {
+function DemoModeBanner() {
   return (
     <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl">
       <div className="flex items-start gap-3">
@@ -153,15 +153,13 @@ function DemoModeBanner({ onSignInWithGoogle }: { onSignInWithGoogle?: () => voi
           <p className="text-sm text-amber-700 mt-0.5 mb-3">
             Order a few cookies to see your orders here. Demo orders are session-only—like cookies fresh from the oven, enjoy them now!
           </p>
-          {onSignInWithGoogle && (
-            <button
-              onClick={onSignInWithGoogle}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
-            >
-              <FcGoogle className="w-4 h-4" />
-              Sign in with Google for full experience
-            </button>
-          )}
+          <Link
+            to="/signin"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+          >
+            <FcGoogle className="w-4 h-4" />
+            Sign in with Google for full experience
+          </Link>
         </div>
       </div>
     </div>
@@ -194,7 +192,7 @@ async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
 }
 
 export default function OrdersPage() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
   const [firestoreOrders, setFirestoreOrders] = useState<SessionOrder[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersSource, setOrdersSource] = useState<'session' | 'firestore'>('session');
@@ -245,7 +243,7 @@ export default function OrdersPage() {
         </div>
         
         {/* Demo Mode Banner for test users */}
-        {isTestUser && <DemoModeBanner onSignInWithGoogle={signInWithGoogle} />}
+        {isTestUser && <DemoModeBanner />}
         
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Profile Sidebar */}
@@ -282,13 +280,13 @@ export default function OrdersPage() {
                   <p className="text-xs text-gray-500 mb-3 text-center">
                     Want to save your orders across sessions?
                   </p>
-                  <button
-                    onClick={signInWithGoogle}
+                  <Link
+                    to="/signin"
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                   >
                     <FcGoogle className="w-5 h-5" />
                     Sign in with Google
-                  </button>
+                  </Link>
                 </div>
               )}
               
