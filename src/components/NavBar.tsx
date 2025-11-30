@@ -392,7 +392,7 @@ const SignOutButton = styled.button`
   span, .sign-out-icon {
     position: relative;
     z-index: 10;
-    transition: color 0.4s;
+    transition: color 0.4s ease;
   }
 
   .sign-out-icon {
@@ -409,18 +409,17 @@ const SignOutButton = styled.button`
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
-    width: 120%;
-    height: 100%;
-    z-index: 0;
-    background: #f8eddc;
     left: -10%;
-    transform: skew(30deg) translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
+    width: 0;
+    height: 100%;
+    background: #f8eddc;
+    transform: skewX(30deg);
+    transition: width 0.4s cubic-bezier(0.3, 1, 0.8, 1);
+    z-index: 1;
   }
 
   &:hover::before {
-    transform: skew(30deg) translateX(0);
+    width: 120%;
   }
 
   &:active {
@@ -432,15 +431,5 @@ const SignOutButton = styled.button`
       display: none;
     }
     padding: 0.5rem 0.6rem;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &::before {
-      transition: none;
-    }
-    
-    &:hover::before {
-      transform: skew(30deg) translateX(0);
-    }
   }
 `;
