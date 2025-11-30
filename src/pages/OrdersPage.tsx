@@ -1,9 +1,10 @@
 // src/pages/OrdersPage.tsx
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { FiPackage, FiMapPin, FiChevronDown, FiChevronUp, FiEdit2, FiShoppingBag } from 'react-icons/fi';
+import { FiPackage, FiMapPin, FiChevronDown, FiChevronUp, FiEdit2, FiShoppingBag, FiLoader } from 'react-icons/fi';
+import { FcGoogle } from 'react-icons/fc';
 import { isTestPhoneUser, getAuthMethod, getAuthMethodLabel } from '@/utils/isTestUser';
 import { getSessionOrders, type SessionOrder } from '@/lib/sessionOrderStorage';
 import { loadCheckoutAddress, hasCheckoutAddress } from '@/lib/checkoutAddressStorage';
@@ -140,42 +141,97 @@ function EmptyOrdersState({ isTestUser }: { isTestUser: boolean }) {
 }
 
 // Demo mode banner for test users
-function DemoModeBanner() {
+function DemoModeBanner({ onSignInWithGoogle }: { onSignInWithGoogle?: () => void }) {
   return (
     <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl">
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center flex-shrink-0">
           <span className="text-xl">🍪</span>
         </div>
-        <div>
-          <h4 className="font-semibold text-amber-900">Demo Mode</h4>
-          <p className="text-sm text-amber-700 mt-0.5">
-            You're using a test phone number. Orders shown are from this session only—perfect for trying things out!
+        <div className="flex-1">
+          <h4 className="font-semibold text-amber-900">Hey, it's Demo Mode!</h4>
+          <p className="text-sm text-amber-700 mt-0.5 mb-3">
+            Order a few cookies to see your orders here. Demo orders are session-only—like cookies fresh from the oven, enjoy them now!
           </p>
+          {onSignInWithGoogle && (
+            <button
+              onClick={onSignInWithGoogle}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+            >
+              <FcGoogle className="w-4 h-4" />
+              Sign in with Google for full experience
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+// Fetch orders from Firestore API
+async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/user-orders`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.orders || [];
+  } catch (error) {
+    console.error('Failed to fetch orders from Firestore:', error);
+    return [];
+  }
+}
+
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const { user, signInWithGoogle } = useAuth();
+  const [firestoreOrders, setFirestoreOrders] = useState<SessionOrder[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [ordersSource, setOrdersSource] = useState<'session' | 'firestore'>('session');
   
   // Determine if user is a test phone user
   const isTestUser = useMemo(() => isTestPhoneUser(user?.phoneNumber), [user?.phoneNumber]);
+  const isGoogleUser = useMemo(() => !!user?.email && !isTestUser, [user?.email, isTestUser]);
   const authMethod = useMemo(() => getAuthMethod(user), [user]);
   const authLabel = getAuthMethodLabel(authMethod);
   
-  // Get session-scoped orders (for test users, this is all they see)
+  // Get session-scoped orders
   const sessionOrders = useMemo(() => getSessionOrders(), []);
   
   // Load saved address (user-scoped via ownerId)
   const savedAddress = useMemo(() => loadCheckoutAddress(user?.uid), [user?.uid]);
   const hasAddress = useMemo(() => hasCheckoutAddress(user?.uid), [user?.uid]);
   
-  // For non-test users, we'd fetch from Firestore here
-  // For now, session orders work for both (can enhance later)
-  const orders = sessionOrders;
+  // Fetch Firestore orders for Google users
+  useEffect(() => {
+    if (isGoogleUser && user) {
+      setIsLoadingOrders(true);
+      user.getIdToken()
+        .then(token => fetchFirestoreOrders(token))
+        .then(orders => {
+          setFirestoreOrders(orders);
+          setOrdersSource('firestore');
+        })
+        .catch(err => {
+          console.error('Error fetching Firestore orders:', err);
+          setOrdersSource('session');
+        })
+        .finally(() => setIsLoadingOrders(false));
+    }
+  }, [isGoogleUser, user]);
+  
+  // For Google users: show Firestore orders, for test users: show session orders
+  const orders = isGoogleUser ? firestoreOrders : sessionOrders;
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FFFBF7] to-[#FDF6EC]">
@@ -189,7 +245,7 @@ export default function OrdersPage() {
         </div>
         
         {/* Demo Mode Banner for test users */}
-        {isTestUser && <DemoModeBanner />}
+        {isTestUser && <DemoModeBanner onSignInWithGoogle={signInWithGoogle} />}
         
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Profile Sidebar */}
@@ -219,6 +275,22 @@ export default function OrdersPage() {
                   Signed in via {authLabel}
                 </span>
               </div>
+              
+              {/* Sign in with Google prompt for test users */}
+              {isTestUser && (
+                <div className="border-t border-[#F8EDDC] pt-4 mb-4">
+                  <p className="text-xs text-gray-500 mb-3 text-center">
+                    Want to save your orders across sessions?
+                  </p>
+                  <button
+                    onClick={signInWithGoogle}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                  >
+                    <FcGoogle className="w-5 h-5" />
+                    Sign in with Google
+                  </button>
+                </div>
+              )}
               
               {/* Saved Address Section */}
               <div className="border-t border-[#F8EDDC] pt-4">
@@ -263,10 +335,17 @@ export default function OrdersPage() {
           
           {/* Orders Content */}
           <main className="lg:col-span-2 space-y-4">
-            {orders.length > 0 ? (
+            {isLoadingOrders ? (
+              <div className="text-center py-12">
+                <FiLoader className="w-8 h-8 text-[#C47A41] animate-spin mx-auto mb-4" />
+                <p className="text-gray-600">Loading your orders...</p>
+              </div>
+            ) : orders.length > 0 ? (
               <>
                 <p className="text-sm text-gray-500 mb-4">
-                  Showing {orders.length} {orders.length === 1 ? 'order' : 'orders'} from this session
+                  Showing {orders.length} {orders.length === 1 ? 'order' : 'orders'}
+                  {isGoogleUser && ordersSource === 'firestore' && ' from your account'}
+                  {isTestUser && ' from this session'}
                 </p>
                 {orders.map((order, index) => (
                   <OrderAccordion 

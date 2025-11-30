@@ -156,20 +156,21 @@ export default function NavBar() {
             <div className="flex items-center gap-3">
               {/* Avatar with hover dropdown for Orders */}
               <div 
-                className="relative group" 
+                className="relative z-50" 
                 ref={avatarMenuRef}
                 onMouseEnter={() => setShowAvatarMenu(true)}
                 onMouseLeave={() => setShowAvatarMenu(false)}
               >
                 <button
-                  className="relative focus:outline-none rounded-full transition-transform duration-200 hover:scale-105"
+                  className="block transition-transform duration-200 hover:scale-105"
+                  style={{ outline: 'none', border: 'none', background: 'none', padding: 0 }}
                   aria-label="User menu"
                   aria-expanded={showAvatarMenu}
                 >
                   {user?.photoURL ? (
-                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
+                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover block" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-[#5b3a20] text-white font-semibold flex items-center justify-center">
                       {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
                     </div>
                   )}
@@ -177,10 +178,10 @@ export default function NavBar() {
                 
                 {/* Hover Dropdown - Orders */}
                 <div 
-                  className={`absolute right-0 top-10 pt-2 z-50 transition-all duration-200 ${
+                  className={`absolute right-0 top-full mt-2 z-[60] transition-all duration-200 ${
                     showAvatarMenu 
                       ? 'opacity-100 visible translate-y-0' 
-                      : 'opacity-0 invisible -translate-y-1'
+                      : 'opacity-0 invisible -translate-y-1 pointer-events-none'
                   }`}
                 >
                   <div className="w-52 bg-white rounded-xl shadow-lg border border-[#dba661]/20 overflow-hidden">
@@ -200,7 +201,7 @@ export default function NavBar() {
                         setShowAvatarMenu(false);
                         navigate('/orders');
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150 cursor-pointer"
                     >
                       <FiPackage className="w-4 h-4 text-[#dba661]" />
                       <span className="font-medium">My Orders</span>
@@ -209,7 +210,7 @@ export default function NavBar() {
                 </div>
               </div>
 
-              {/* Sign Out Button - Slick skew transition */}
+              {/* Sign Out Button */}
               {user && (
                 <SignOutButton onClick={handleSignOutClick} aria-label="Sign out">
                   <FiLogOut className="sign-out-icon" />
@@ -371,59 +372,64 @@ const HomeNavLink = styled(Link)`
 `;
 
 const SignOutButton = styled.button`
+  --btn-bg: linear-gradient(145deg, #e2b980 0%, #d4a574 40%, #c99a65 100%);
+  --btn-glow: rgba(212, 165, 116, 0.35);
+  
   outline: none;
   cursor: pointer;
   border: none;
   padding: 0.5rem 1rem;
-  margin: 0;
   font-family: inherit;
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  letter-spacing: 0.03rem;
+  gap: 0.45rem;
   font-weight: 600;
   font-size: 13px;
-  border-radius: 500px;
+  letter-spacing: 0.01em;
+  border-radius: 50px;
   overflow: hidden;
-  background: #5b3a20;
-  color: #f8eddc;
-
-  span, .sign-out-icon {
-    position: relative;
-    z-index: 10;
-    transition: color 0.4s ease;
-  }
+  background: var(--btn-bg);
+  color: #4a3728;
+  box-shadow: 
+    0 2px 8px var(--btn-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.35s ease;
+  z-index: 10;
 
   .sign-out-icon {
     width: 14px;
     height: 14px;
+    transition: transform 0.35s ease;
+    opacity: 0.85;
   }
 
-  &:hover span,
+  span {
+    opacity: 0.9;
+  }
+
+  &:hover {
+    background: linear-gradient(145deg, #ecc997 0%, #dfb682 40%, #d4a872 100%);
+    box-shadow: 
+      0 4px 16px rgba(212, 165, 116, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+  }
+
   &:hover .sign-out-icon {
-    color: #5b3a20;
+    transform: translateX(2px);
+    opacity: 1;
   }
 
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -10%;
-    width: 0;
-    height: 100%;
-    background: #f8eddc;
-    transform: skewX(30deg);
-    transition: width 0.4s cubic-bezier(0.3, 1, 0.8, 1);
-    z-index: 1;
-  }
-
-  &:hover::before {
-    width: 120%;
+  &:hover span {
+    opacity: 1;
   }
 
   &:active {
-    transform: scale(0.97);
+    transform: translateY(0) scale(0.98);
+    box-shadow: 
+      0 1px 4px var(--btn-glow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 
   @media (max-width: 640px) {
