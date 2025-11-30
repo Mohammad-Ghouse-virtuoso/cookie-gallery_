@@ -387,22 +387,24 @@ export default function CartPreviewModal(props: CartPreviewModalProps) {
                   {checkoutAddress ? checkoutAddress.fullName?.trim() || 'Unnamed recipient' : 'No address saved'}
                 </p>
                 <p className="truncate text-xs text-[#6B5E57]">
-                  {checkoutAddress ? addressSummary ?? 'Add the street and landmark for smoother delivery.' : 'Add an address before checkout.'}
+                  {checkoutAddress ? addressSummary ?? 'Add the street and landmark for smoother delivery.' : 'Add items to cart first'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (onManageAddress) {
-                    onManageAddress();
-                  } else {
-                    onCheckout();
-                  }
-                }}
-                className="rounded-full border border-[#C47A41]/40 px-3 py-1.5 text-xs font-semibold text-[#C47A41] transition-colors duration-150 hover:bg-[#FCEFE3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]/40"
-              >
-                {manageAddressLabel}
-              </button>
+              {hasItems && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onManageAddress) {
+                      onManageAddress();
+                    } else {
+                      onCheckout();
+                    }
+                  }}
+                  className="rounded-full border border-[#C47A41]/40 px-3 py-1.5 text-xs font-semibold text-[#C47A41] transition-colors duration-150 hover:bg-[#FCEFE3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C47A41]/40"
+                >
+                  {manageAddressLabel}
+                </button>
+              )}
             </div>
 
             <div className="rounded-[18px] border border-[rgba(226,185,127,0.22)] bg-white px-4 py-3 shadow-[0_12px_24px_rgba(59,43,26,0.08)]">
