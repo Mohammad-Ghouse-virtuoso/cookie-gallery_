@@ -965,41 +965,109 @@ app.get('/api/user-orders', requireAuth, async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
   try {
-    const ordersRef = adminDb.collection(ORDERS_COLLECTION);
-    const snapshot = await ordersRef
-      .where('userEmail', '==', userEmail)
-      .where('status', '==', 'paid')
-      .orderBy('createdAt', 'desc')
-      .limit(limit)
-      .get();
+    const allOrders = [];
+    
+    // Query 1: Check orders_v2 collection (new flow)
+    try {
+      const ordersV2Ref = adminDb.collection(ORDERS_COLLECTION);
+      const v2Snapshot = await ordersV2Ref
+        .where('userEmail', '==', userEmail)
+        .where('status', 'in', ['paid', 'completed'])
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
 
-    const orders = [];
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      orders.push({
-        orderId: doc.id,
-        totalAmount: data.totalAmount || 0,
-        itemCount: data.items?.length || data.itemCount || 0,
-        items: (data.items || []).map(item => ({
-          id: item.id || item.productId,
-          name: item.name,
-          price: item.price || 0,
-          qty: item.qty || item.quantity || 1,
-          image: item.image || ''
-        })),
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString(),
-        status: data.status || 'paid'
+      v2Snapshot.forEach(doc => {
+        const data = doc.data();
+        
+        // Parse items from cart object if items array not available
+        let items = data.items || [];
+        if (items.length === 0 && data.cart && typeof data.cart === 'object') {
+          items = Object.entries(data.cart).map(([id, qty]) => ({
+            id,
+            name: id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            price: data.totalAmount / Object.values(data.cart).reduce((s, q) => s + q, 0),
+            qty: qty,
+            image: ''
+          }));
+        }
+        
+        allOrders.push({
+          orderId: doc.id,
+          totalAmount: data.totalAmount || 0,
+          itemCount: items.length || data.itemCount || Object.keys(data.cart || {}).length || 0,
+          items: items.map(item => ({
+            id: item.id || item.productId || item.cookieId,
+            name: item.name || 'Cookie',
+            price: item.price || 0,
+            qty: item.qty || item.quantity || 1,
+            image: item.image || ''
+          })),
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString(),
+          status: data.status || 'paid',
+          source: 'orders_v2'
+        });
       });
-    });
+    } catch (v2Err) {
+      logger.warn('Error querying orders_v2', { error: v2Err.message });
+    }
+    
+    // Query 2: Check legacy 'orders' collection
+    try {
+      const ordersRef = adminDb.collection('orders');
+      const legacySnapshot = await ordersRef
+        .where('userEmail', '==', userEmail)
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .get();
+
+      legacySnapshot.forEach(doc => {
+        const data = doc.data();
+        // Skip if already in allOrders (dedup by checking paymentIntentId)
+        const isDupe = allOrders.some(o => 
+          o.orderId === doc.id || 
+          o.orderId === data.paymentIntentId ||
+          (data.paymentIntentId && o.orderId.includes(data.paymentIntentId))
+        );
+        if (isDupe) return;
+        
+        const items = data.items || [];
+        allOrders.push({
+          orderId: doc.id,
+          totalAmount: data.paymentAmount || data.totalAmount || 0,
+          itemCount: items.length || 0,
+          items: items.map(item => ({
+            id: item.id || item.productId,
+            name: item.name || 'Cookie',
+            price: item.price || 0,
+            qty: item.qty || item.quantity || 1,
+            image: item.image || ''
+          })),
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt || new Date().toISOString(),
+          status: data.orderStatus || data.paymentStatus || 'paid',
+          cardBrand: data.cardBrand,
+          cardLast4: data.cardLast4,
+          source: 'orders'
+        });
+      });
+    } catch (legacyErr) {
+      logger.warn('Error querying legacy orders', { error: legacyErr.message });
+    }
+    
+    // Sort all orders by createdAt descending
+    allOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    // Limit to requested amount
+    const finalOrders = allOrders.slice(0, limit);
 
     logger.info('Fetched user orders from Firestore', { 
       email: userEmail, 
-      count: orders.length 
+      count: finalOrders.length 
     });
 
     res.status(200).json({
       success: true,
-      orders,
+      orders: finalOrders,
       source: 'firestore'
     });
   } catch (error) {
