@@ -161,7 +161,7 @@ export default function NavBar() {
                 aria-expanded={showAvatarMenu}
               >
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm ring-2 ring-[#f8eddc]" />
+                  <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
                     {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
