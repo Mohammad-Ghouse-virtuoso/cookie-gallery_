@@ -153,7 +153,7 @@ export default function NavBar() {
             />
 
             {/* Identity avatar with hover dropdown + Sign Out button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {/* Avatar with hover dropdown for Orders */}
               <div 
                 className="relative group" 
@@ -162,14 +162,14 @@ export default function NavBar() {
                 onMouseLeave={() => setShowAvatarMenu(false)}
               >
                 <button
-                  className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#dba661] focus-visible:ring-offset-2 rounded-full transition-transform duration-200 hover:scale-105"
+                  className="relative focus:outline-none rounded-full transition-transform duration-200 hover:scale-105"
                   aria-label="User menu"
                   aria-expanded={showAvatarMenu}
                 >
                   {user?.photoURL ? (
-                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover shadow-sm" />
+                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center shadow-sm">
+                    <div className="w-9 h-9 rounded-full bg-[color:#5b3a20] text-white font-semibold flex items-center justify-center">
                       {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
                     </div>
                   )}
@@ -209,16 +209,12 @@ export default function NavBar() {
                 </div>
               </div>
 
-              {/* Sign Out Button - Always Visible */}
+              {/* Sign Out Button - Slick skew transition */}
               {user && (
-                <button
-                  onClick={handleSignOutClick}
-                  className="group relative flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#fef2f2] text-red-600 text-sm font-medium transition-all duration-200 hover:bg-red-500 hover:text-white hover:shadow-md hover:scale-105 active:scale-95"
-                  aria-label="Sign out"
-                >
-                  <FiLogOut className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
+                <SignOutButton onClick={handleSignOutClick} aria-label="Sign out">
+                  <FiLogOut className="sign-out-icon" />
+                  <span>Sign Out</span>
+                </SignOutButton>
               )}
             </div>
           </>
@@ -370,6 +366,81 @@ const HomeNavLink = styled(Link)`
     &:hover,
     &:focus-visible {
       transform: none;
+    }
+  }
+`;
+
+const SignOutButton = styled.button`
+  outline: none;
+  cursor: pointer;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0;
+  font-family: inherit;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  letter-spacing: 0.03rem;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 500px;
+  overflow: hidden;
+  background: #5b3a20;
+  color: #f8eddc;
+
+  span, .sign-out-icon {
+    position: relative;
+    z-index: 10;
+    transition: color 0.4s;
+  }
+
+  .sign-out-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover span,
+  &:hover .sign-out-icon {
+    color: #5b3a20;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 120%;
+    height: 100%;
+    z-index: 0;
+    background: #f8eddc;
+    left: -10%;
+    transform: skew(30deg) translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.3, 1, 0.8, 1);
+  }
+
+  &:hover::before {
+    transform: skew(30deg) translateX(0);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  @media (max-width: 640px) {
+    span {
+      display: none;
+    }
+    padding: 0.5rem 0.6rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+    
+    &:hover::before {
+      transform: skew(30deg) translateX(0);
     }
   }
 `;
