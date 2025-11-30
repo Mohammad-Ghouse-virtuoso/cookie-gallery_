@@ -47,7 +47,9 @@ app.use(cors({
   origin: (origin, cb) => {
     const allowed = [
       'http://localhost:5173',
+      'http://localhost:5174',
       'http://127.0.0.1:5173',
+      'http://127.0.0.1:5174',
       process.env.CORS_ORIGIN,
       process.env.CORS_ORIGIN_VERCEL, // Support Vercel default domain
     ].filter(Boolean);
@@ -945,7 +947,10 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
 
 // GET /api/user-orders - Fetch all orders for authenticated Google user from Firestore
 app.get('/api/user-orders', requireAuth, async (req, res) => {
+  console.log('>>> /api/user-orders called for:', req.user?.email);
+  
   if (!req.user || !req.user.email) {
+    console.log('>>> No user or email found');
     return res.status(401).json({
       success: false,
       error: 'Authentication required',
@@ -954,6 +959,7 @@ app.get('/api/user-orders', requireAuth, async (req, res) => {
   }
 
   if (!adminDb) {
+    console.log('>>> Database not configured');
     return res.status(503).json({
       success: false,
       error: 'Database not configured',
@@ -962,6 +968,7 @@ app.get('/api/user-orders', requireAuth, async (req, res) => {
   }
 
   const userEmail = req.user.email.toLowerCase();
+  console.log('>>> Searching for orders with email:', userEmail);
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
   try {
@@ -970,12 +977,15 @@ app.get('/api/user-orders', requireAuth, async (req, res) => {
     // Query 1: Check orders_v2 collection (new flow)
     try {
       const ordersV2Ref = adminDb.collection(ORDERS_COLLECTION);
+      console.log('>>> Querying orders_v2 collection:', ORDERS_COLLECTION);
       const v2Snapshot = await ordersV2Ref
         .where('userEmail', '==', userEmail)
         .where('status', 'in', ['paid', 'completed'])
         .orderBy('createdAt', 'desc')
         .limit(limit)
         .get();
+      
+      console.log('>>> orders_v2 results:', v2Snapshot.size);
 
       v2Snapshot.forEach(doc => {
         const data = doc.data();
@@ -1009,6 +1019,7 @@ app.get('/api/user-orders', requireAuth, async (req, res) => {
         });
       });
     } catch (v2Err) {
+      console.log('>>> ERROR querying orders_v2:', v2Err.message);
       logger.warn('Error querying orders_v2', { error: v2Err.message });
     }
     

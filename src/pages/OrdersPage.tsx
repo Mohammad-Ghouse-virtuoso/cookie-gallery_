@@ -3,13 +3,48 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { FiPackage, FiMapPin, FiChevronDown, FiChevronUp, FiEdit2, FiShoppingBag, FiLoader } from 'react-icons/fi';
+import { FiPackage, FiMapPin, FiChevronDown, FiChevronUp, FiShoppingBag, FiLoader } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import { isTestPhoneUser, getAuthMethod, getAuthMethodLabel } from '@/utils/isTestUser';
 import { getSessionOrders, type SessionOrder } from '@/lib/sessionOrderStorage';
 import { loadCheckoutAddress, hasCheckoutAddress } from '@/lib/checkoutAddressStorage';
 import { formatPrice } from '@/utils/formatPrice';
+import { cookies } from '@/data/cookies';
+import { goldenSeasonBoxes } from '@/data/goldenSeasonBoxes';
 import cookieIllustration from '@/assets/Cookie-Hero Card.png';
+
+// Build a lookup map for cookies and gift boxes by ID/key
+const productCatalog = new Map<string, { name: string; price: number; image: string }>();
+
+// Add all cookies to catalog
+cookies.forEach(c => {
+  productCatalog.set(c.id, { name: c.name, price: c.price, image: c.src });
+});
+
+// Add all gift boxes to catalog
+goldenSeasonBoxes.forEach(box => {
+  productCatalog.set(box.key, { name: box.title, price: box.price, image: box.previewImage });
+});
+
+/**
+ * Enrich order items with product catalog data (names, images)
+ */
+function enrichOrderItems(order: SessionOrder): SessionOrder {
+  const enrichedItems = order.items.map(item => {
+    const catalogItem = productCatalog.get(item.id);
+    if (catalogItem) {
+      return {
+        ...item,
+        name: catalogItem.name,
+        price: item.price || catalogItem.price,
+        image: catalogItem.image,
+      };
+    }
+    return item;
+  });
+  
+  return { ...order, items: enrichedItems };
+}
 
 // Order accordion item component
 function OrderAccordion({ order, defaultExpanded = false }: { order: SessionOrder; defaultExpanded?: boolean }) {
@@ -169,6 +204,7 @@ function DemoModeBanner() {
 // Fetch orders from Firestore API
 async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  console.log('[fetchFirestoreOrders] API_BASE:', API_BASE);
   
   try {
     const response = await fetch(`${API_BASE}/api/user-orders`, {
@@ -179,12 +215,17 @@ async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
       }
     });
     
+    console.log('[fetchFirestoreOrders] Response status:', response.status);
+    
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
     
     const data = await response.json();
-    return data.orders || [];
+    console.log('[fetchFirestoreOrders] Data:', data);
+    // Enrich each order with catalog data for proper names/images
+    const orders = (data.orders || []) as SessionOrder[];
+    return orders.map(enrichOrderItems);
   } catch (error) {
     console.error('Failed to fetch orders from Firestore:', error);
     return [];
@@ -207,16 +248,22 @@ export default function OrdersPage() {
   const sessionOrders = useMemo(() => getSessionOrders(), []);
   
   // Load saved address (user-scoped via ownerId)
-  const savedAddress = useMemo(() => loadCheckoutAddress(user?.uid), [user?.uid]);
-  const hasAddress = useMemo(() => hasCheckoutAddress(user?.uid), [user?.uid]);
+  const savedAddress = loadCheckoutAddress(user?.uid);
+  const hasAddressSaved = hasCheckoutAddress(user?.uid);
   
   // Fetch Firestore orders for Google users
   useEffect(() => {
+    console.log('[OrdersPage] isGoogleUser:', isGoogleUser, 'user:', user?.email, 'isTestUser:', isTestUser);
     if (isGoogleUser && user) {
       setIsLoadingOrders(true);
+      console.log('[OrdersPage] Fetching Firestore orders...');
       user.getIdToken()
-        .then(token => fetchFirestoreOrders(token))
+        .then(token => {
+          console.log('[OrdersPage] Got token, calling API...');
+          return fetchFirestoreOrders(token);
+        })
         .then(orders => {
+          console.log('[OrdersPage] Got orders:', orders.length);
           setFirestoreOrders(orders);
           setOrdersSource('firestore');
         })
@@ -226,7 +273,7 @@ export default function OrdersPage() {
         })
         .finally(() => setIsLoadingOrders(false));
     }
-  }, [isGoogleUser, user]);
+  }, [isGoogleUser, isTestUser, user]);
   
   // For Google users: show Firestore orders, for test users: show session orders
   const orders = isGoogleUser ? firestoreOrders : sessionOrders;
@@ -297,18 +344,9 @@ export default function OrdersPage() {
                     <FiMapPin className="w-4 h-4 text-[#C47A41]" />
                     Saved Address
                   </h3>
-                  {hasAddress && (
-                    <Link
-                      to="/checkout#address"
-                      className="text-xs text-[#C47A41] hover:text-[#A66A35] flex items-center gap-1 transition-colors"
-                    >
-                      <FiEdit2 className="w-3 h-3" />
-                      Edit
-                    </Link>
-                  )}
                 </div>
                 
-                {hasAddress && savedAddress ? (
+                {hasAddressSaved && savedAddress ? (
                   <div className="text-sm text-gray-600 space-y-1 bg-[#FDFAF5] rounded-xl p-3">
                     <p className="font-medium text-[#3B2B1A]">{savedAddress.fullName}</p>
                     <p>{savedAddress.line1}</p>
@@ -318,13 +356,7 @@ export default function OrdersPage() {
                   </div>
                 ) : (
                   <div className="text-center py-4 bg-[#FDFAF5] rounded-xl">
-                    <p className="text-sm text-gray-500 mb-2">No address saved yet</p>
-                    <Link
-                      to="/checkout#address"
-                      className="text-sm text-[#C47A41] hover:text-[#A66A35] font-medium transition-colors"
-                    >
-                      Add address →
-                    </Link>
+                    <p className="text-sm text-gray-500">No address saved yet</p>
                   </div>
                 )}
               </div>
