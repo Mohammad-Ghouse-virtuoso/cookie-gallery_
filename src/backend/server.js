@@ -18,6 +18,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env'), override: fals
 const logger = require('./logger');
 const PaymentService = require('./services/paymentService');
 const SchemaService = require('./services/schemaService');
+const emailService = require('./services/emailService');
 const createWebhookRoutes = require('./routes/webhooks');
 const createOrderRoutes = require('./routes/orders');
 const sentryService = require('./services/sentryService');
@@ -299,7 +300,6 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
 
     if (!BREVO_API_KEY) {
       logger.warn('Newsletter subscription attempted but BREVO_API_KEY not configured');
-      // Still return success to user but log warning
       return res.status(200).json({ success: true, message: 'Subscribed successfully' });
     }
 
@@ -313,54 +313,31 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
       },
       body: JSON.stringify({
         email: email.toLowerCase(),
-        listIds: [2], // Default list ID - you can change this in Brevo dashboard
-        updateEnabled: true, // Update if contact exists
+        updateEnabled: true,
       }),
     });
 
-    const data = await response.json();
+    // Handle response - may be empty for 201/204
+    let data = {};
+    const responseText = await response.text();
+    if (responseText) {
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        // Response might be empty, that's OK
+      }
+    }
 
-    if (response.ok || response.status === 204) {
+    if (response.ok || response.status === 201 || response.status === 204) {
       logger.info('Newsletter subscription successful', { email: email.toLowerCase() });
       
-      // Send welcome email
-      await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'api-key': BREVO_API_KEY,
-        },
-        body: JSON.stringify({
-          sender: { name: 'Cookie Gallery', email: 'alerts@cookiegallery.mohammad-ghouse.site' },
-          to: [{ email: email.toLowerCase() }],
-          subject: '🍪 Welcome to Cookie Gallery!',
-          htmlContent: `
-            <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #fef3e2 0%, #fff8f0 100%);">
-              <h1 style="color: #5b3a20; text-align: center; font-size: 28px; margin-bottom: 20px;">
-                Welcome to Cookie Gallery! 🍪
-              </h1>
-              <p style="color: #6b5344; font-size: 16px; line-height: 1.8; text-align: center;">
-                You're now part of our sweet family! Get ready for exclusive deals, fresh-from-the-oven updates, and cookie goodness delivered straight to your inbox.
-              </p>
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="https://cookiegallery.mohammad-ghouse.site" 
-                   style="background: #5b3a20; color: white; padding: 14px 32px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
-                  Explore Our Cookies
-                </a>
-              </div>
-              <p style="color: #8b7355; font-size: 14px; text-align: center; margin-top: 30px;">
-                Baked with love,<br/>
-                <strong>The Cookie Gallery Team</strong>
-              </p>
-            </div>
-          `,
-        }),
+      // Send VIP newsletter email using email service
+      emailService.sendNewsletterEmail(email.toLowerCase()).catch(err => {
+        logger.warn('Failed to send newsletter email', { email: email.toLowerCase(), error: err.message });
       });
 
       return res.status(200).json({ success: true, message: 'Subscribed successfully' });
     } else if (response.status === 400 && data.code === 'duplicate_parameter') {
-      // Contact already exists - that's fine
       logger.info('Newsletter: Contact already subscribed', { email: email.toLowerCase() });
       return res.status(200).json({ success: true, message: 'Already subscribed' });
     } else {
@@ -370,6 +347,59 @@ app.post('/api/newsletter/subscribe', async (req, res) => {
   } catch (error) {
     logger.error('Newsletter subscription error', { error: error.message });
     return res.status(500).json({ success: false, message: 'Subscription failed' });
+  }
+});
+
+// TEST ENDPOINT: Send test emails (development only)
+app.post('/api/test-emails', async (req, res) => {
+  // Only allow in development/local environment
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Not available in production' });
+  }
+  
+  const { email, type } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email required' });
+  }
+
+  try {
+    if (type === 'newsletter' || type === 'all') {
+      await emailService.sendNewsletterEmail(email);
+      logger.info('Test newsletter email sent', { email });
+    }
+    
+    if (type === 'order' || type === 'all') {
+      const testOrderDetails = {
+        orderId: 'TEST-ORDER-123',
+        items: [
+          { name: 'Chocolate Chip Cookie', quantity: 6, price: 299 },
+          { name: 'Double Chocolate Cookie', quantity: 4, price: 349 },
+          { name: 'Oatmeal Raisin Cookie', quantity: 2, price: 279 }
+        ],
+        totalAmount: 4072,
+        currency: 'INR',
+        shippingAddress: {
+          line1: '123 Test Street',
+          city: 'Mumbai',
+          state: 'Maharashtra',
+          postal_code: '400001',
+          country: 'IN'
+        }
+      };
+      await emailService.sendOrderConfirmationEmail(email, testOrderDetails);
+      logger.info('Test order confirmation email sent', { email });
+    }
+
+    if (type === 'welcome') {
+      await emailService.sendWelcomeEmail(email, 'Test User');
+      logger.info('Test welcome email sent', { email });
+    }
+
+    return res.status(200).json({ success: true, message: `Test email(s) sent to ${email}` });
+  } catch (error) {
+    logger.error('Test email failed', { error: error.message });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -456,8 +486,13 @@ app.post('/save-user', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Authenticated email not available on token.' });
     }
     const emailKey = String(req.user.email).toLowerCase();
-    const { displayName, phoneNumber } = req.body || {};
+    const { displayName, phoneNumber, isNewUser } = req.body || {};
     const userRef = adminDb.collection('users').doc(emailKey);
+    
+    // Check if user exists (for welcome email)
+    const userDoc = await userRef.get();
+    const isFirstTimeUser = !userDoc.exists || isNewUser;
+    
     await userRef.set({
       uid: emailKey,              // Store Gmail as UID per requirement
       authUid: req.user.uid || null, // Preserve actual Firebase UID separately
@@ -465,8 +500,18 @@ app.post('/save-user', requireAuth, async (req, res) => {
       displayName: displayName || null,
       phoneNumber: phoneNumber || null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      ...(isFirstTimeUser && { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
     }, { merge: true });
+    
     logger.info('Saved user profile for', emailKey);
+    
+    // Send welcome email for first-time users
+    if (isFirstTimeUser) {
+      emailService.sendWelcomeEmail(emailKey, displayName).catch(err => {
+        logger.warn('Failed to send welcome email', { email: emailKey, error: err.message });
+      });
+    }
+    
     res.status(200).json({ success: true, message: 'User saved.' });
   } catch (err) {
     logger.error('Error saving user profile:', err);
@@ -1414,6 +1459,43 @@ app.post(STRIPE_WEBHOOK_PATH, async (req, res) => {
         }
 
         logPaymentEvent('order_completed_webhook', { localOrderId, sessionId: session.id });
+
+        // Send order confirmation email
+        try {
+          const customerEmail = session.customer_email || session.customer_details?.email;
+          if (customerEmail) {
+            // Fetch order details from Firestore
+            const orderDoc = await docRef.get();
+            const orderData = orderDoc.data();
+            
+            // Parse cart into items array
+            let items = [];
+            if (orderData?.cart && typeof orderData.cart === 'object') {
+              items = Object.entries(orderData.cart).map(([cookieId, quantity]) => ({
+                name: cookieId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                quantity,
+                price: Math.round((orderData.totalAmount || 0) / Object.values(orderData.cart).reduce((sum, qty) => sum + qty, 0))
+              }));
+            }
+
+            const orderDetails = {
+              orderId: localOrderId,
+              items,
+              totalAmount: orderData?.totalAmount || session.amount_total / 100,
+              currency: orderData?.currency || session.currency?.toUpperCase() || 'INR',
+              shippingAddress: orderData?.shippingAddress || session.customer_details?.address
+            };
+
+            await emailService.sendOrderConfirmationEmail(customerEmail, orderDetails);
+            logger.info('📧 Order confirmation email sent', { localOrderId, email: customerEmail });
+          }
+        } catch (emailError) {
+          // Don't fail webhook if email fails
+          logger.error('⚠️ Failed to send order confirmation email (non-critical)', {
+            localOrderId,
+            error: emailError.message
+          });
+        }
       }
     } else if (event.type === 'checkout.session.expired' || event.type === 'checkout.session.async_payment_failed') {
       const session = event.data.object;
