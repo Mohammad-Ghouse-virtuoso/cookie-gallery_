@@ -286,6 +286,93 @@ app.get('/health', async (req, res) => {
   res.status(status).json(healthCheck);
 });
 
+// --- Newsletter Subscription (Brevo) ---
+const BREVO_API_KEY = process.env.BREVO_API_KEY;
+
+app.post('/api/newsletter/subscribe', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Valid email required' });
+    }
+
+    if (!BREVO_API_KEY) {
+      logger.warn('Newsletter subscription attempted but BREVO_API_KEY not configured');
+      // Still return success to user but log warning
+      return res.status(200).json({ success: true, message: 'Subscribed successfully' });
+    }
+
+    // Add contact to Brevo
+    const response = await fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'api-key': BREVO_API_KEY,
+      },
+      body: JSON.stringify({
+        email: email.toLowerCase(),
+        listIds: [2], // Default list ID - you can change this in Brevo dashboard
+        updateEnabled: true, // Update if contact exists
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok || response.status === 204) {
+      logger.info('Newsletter subscription successful', { email: email.toLowerCase() });
+      
+      // Send welcome email
+      await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'api-key': BREVO_API_KEY,
+        },
+        body: JSON.stringify({
+          sender: { name: 'Cookie Gallery', email: 'alerts@cookiegallery.mohammad-ghouse.site' },
+          to: [{ email: email.toLowerCase() }],
+          subject: '🍪 Welcome to Cookie Gallery!',
+          htmlContent: `
+            <div style="font-family: 'Georgia', serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background: linear-gradient(135deg, #fef3e2 0%, #fff8f0 100%);">
+              <h1 style="color: #5b3a20; text-align: center; font-size: 28px; margin-bottom: 20px;">
+                Welcome to Cookie Gallery! 🍪
+              </h1>
+              <p style="color: #6b5344; font-size: 16px; line-height: 1.8; text-align: center;">
+                You're now part of our sweet family! Get ready for exclusive deals, fresh-from-the-oven updates, and cookie goodness delivered straight to your inbox.
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://cookiegallery.mohammad-ghouse.site" 
+                   style="background: #5b3a20; color: white; padding: 14px 32px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+                  Explore Our Cookies
+                </a>
+              </div>
+              <p style="color: #8b7355; font-size: 14px; text-align: center; margin-top: 30px;">
+                Baked with love,<br/>
+                <strong>The Cookie Gallery Team</strong>
+              </p>
+            </div>
+          `,
+        }),
+      });
+
+      return res.status(200).json({ success: true, message: 'Subscribed successfully' });
+    } else if (response.status === 400 && data.code === 'duplicate_parameter') {
+      // Contact already exists - that's fine
+      logger.info('Newsletter: Contact already subscribed', { email: email.toLowerCase() });
+      return res.status(200).json({ success: true, message: 'Already subscribed' });
+    } else {
+      logger.error('Brevo API error', { status: response.status, data });
+      return res.status(500).json({ success: false, message: 'Subscription failed' });
+    }
+  } catch (error) {
+    logger.error('Newsletter subscription error', { error: error.message });
+    return res.status(500).json({ success: false, message: 'Subscription failed' });
+  }
+});
+
 
 // --- ROUTES ---
 

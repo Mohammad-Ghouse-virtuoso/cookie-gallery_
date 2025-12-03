@@ -24,6 +24,7 @@ import CheckoutAddressPage from "./pages/checkout/CheckoutAddress";
 import PaymentStatusPage from "./pages/PaymentStatus";
 import Receipt from "./pages/Receipt";
 import OrdersPage from "./pages/OrdersPage";
+import SocialComingSoon from "./pages/SocialComingSoon";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
 import CartPersistenceBanner from "./components/CartPersistenceBanner";
@@ -62,6 +63,7 @@ function AppContent() {
         <Route path="/signed-out" element={<SignedOut />} />
         <Route path="/order-success" element={<OrderSuccess />} />
         <Route path="/receipt" element={<Receipt />} />
+        <Route path="/social/:platform" element={<SocialComingSoon />} />
         {/* Protected routes (these will have the NavBar rendered) */}
         <Route path="/" element={<ProtectedRoutes />}>
           {/* Explicit home route to support navigate('/home') after sign-in */}

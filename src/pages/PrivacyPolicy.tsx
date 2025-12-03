@@ -1,4 +1,11 @@
+import { useEffect } from 'react';
+
 export default function PrivacyPolicy() {
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-4xl mx-auto px-6 py-16 font-inter">

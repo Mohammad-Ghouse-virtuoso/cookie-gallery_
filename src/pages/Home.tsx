@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
-import { FaInstagram, FaFacebook } from 'react-icons/fa'; // Ensure react-icons is installed
+import { FaInstagram, FaFacebook } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi';
-import { Link, useLocation, useNavigate } from 'react-router-dom'; // <--- ADDED: useLocation, useNavigate
-import { useAuth } from '../context/AuthContext'; // Use AuthContext
+import { FiMail, FiPhone, FiMapPin, FiCheck } from 'react-icons/fi';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+
+// Payment icons
+import VisaIcon from '../assets/icons8-visa.svg';
+import MastercardIcon from '../assets/mastercard-full.svg';
+import RupayIcon from '../assets/RuPay.svg';
+import GpayIcon from '../assets/google-pay-primary-logo-logo.svg';
 
 // Importing the separate components
 import Hero from '../components/Hero';
@@ -13,6 +19,85 @@ import BestsellerCarousel from '../components/BestsellerCarousel';
 import FestiveBanner from '../components/FestiveBanner';
 import SectionDivider from '../components/SectionDivider';
 import Accordion, { AccordionItem } from '../components/Accordion';
+
+// Newsletter Form Component with subscription acknowledgment
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) return;
+    
+    setIsSubmitting(true);
+    setError('');
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/newsletter/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setIsSubscribed(true);
+        setEmail('');
+        // Reset after 5 seconds
+        setTimeout(() => setIsSubscribed(false), 5000);
+      } else {
+        setError('Subscription failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Newsletter subscription error:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isSubscribed) {
+    return (
+      <div className="mt-4 flex w-full max-w-sm rounded-xl overflow-hidden border border-green-500/30 bg-green-500/10 backdrop-blur-sm px-4 py-3">
+        <div className="flex items-center gap-3 text-green-400">
+          <FiCheck className="w-5 h-5" />
+          <span className="text-sm font-medium">Sweet! Check your inbox for a surprise 🍪</span>
+          <span className="animate-pulse">|</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 flex flex-col w-full max-w-sm">
+      <div className="flex rounded-xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email for sweet deals"
+          className="w-full px-4 py-3 bg-transparent text-slate-200 placeholder-slate-400 focus:outline-none"
+          required
+        />
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-4 py-3 font-semibold text-white transition-colors rounded-r-xl disabled:opacity-50"
+          style={{ backgroundColor: '#5b3a20' }}
+        >
+          {isSubmitting ? '...' : 'Subscribe'}
+        </button>
+      </div>
+      {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+    </form>
+  );
+}
 
 
 export default function Home() {
@@ -184,30 +269,30 @@ export default function Home() {
           {/* Newsletter & Social */}
           <div className="md:justify-self-end">
             <h3 className="text-sm font-semibold tracking-widest text-slate-400 uppercase">Stay in the loop</h3>
-            <form className="mt-4 flex w-full max-w-sm rounded-xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm">
-              <input
-                type="email"
-                placeholder="Your email for sweet deals"
-                className="w-full px-4 py-3 bg-transparent text-slate-200 placeholder-slate-400 focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="px-4 py-3 font-semibold text-white transition-colors rounded-r-xl"
-                style={{ backgroundColor: '#5b3a20' }}
-              >
-                Subscribe
-              </button>
-            </form>
+            <NewsletterForm />
             <div className="mt-6 flex items-center gap-4">
-              <a href="#" aria-label="Instagram" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-pink-500 text-2xl"><FaInstagram /></a>
-              <a href="#" aria-label="X" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-black text-2xl"><FaXTwitter /></a>
-              <a href="#" aria-label="Facebook" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-blue-500 text-2xl"><FaFacebook /></a>
+              <Link to="/social/instagram" aria-label="Instagram" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-pink-500 text-2xl"><FaInstagram /></Link>
+              <Link to="/social/x" aria-label="X" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-white text-2xl"><FaXTwitter /></Link>
+              <Link to="/social/facebook" aria-label="Facebook" className="p-2 rounded-full bg-white/5 hover:bg-white/10 ring-1 ring-white/10 transition-all text-blue-500 text-2xl"><FaFacebook /></Link>
             </div>
           </div>
         </div>
 
         {/* Bottom bar */}
         <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-white/10 flex flex-col items-start gap-6 text-sm">
+          {/* Payment Methods */}
+          <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400 uppercase tracking-wide">We Accept</span>
+              <div className="flex items-center gap-2">
+                <img src={VisaIcon} alt="Visa" className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                <img src={MastercardIcon} alt="Mastercard" className="h-6 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                <img src={RupayIcon} alt="RuPay" className="h-5 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+                <img src={GpayIcon} alt="Google Pay" className="h-5 w-auto opacity-80 hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+          </div>
+
           {/* FAQ Accordion */}
           <div className="w-full">
             <h4 className="text-white font-semibold mb-3">FAQ</h4>
