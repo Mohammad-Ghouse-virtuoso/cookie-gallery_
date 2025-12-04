@@ -82,3 +82,8 @@ vite.log
 C:\npm-cache
 C:\npm-cache/
 **/C:\npm-cache/
+C:\npm-cache/
+**/C:\npm-cache/
+C:\\npm-cache/
+**/C:\\npm-cache/
+npm-cache/
