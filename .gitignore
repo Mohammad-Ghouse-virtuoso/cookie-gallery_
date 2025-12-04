@@ -80,3 +80,5 @@ vite.log
 *.mov
 *.avi
 C:\npm-cache
+C:\npm-cache/
+**/C:\npm-cache/
