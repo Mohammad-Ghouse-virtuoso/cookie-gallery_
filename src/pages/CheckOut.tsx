@@ -5,6 +5,7 @@ import { cookies as cookieList } from '@/data/cookies';
 import { formatPrice } from '@/utils/formatPrice';
 import { useAuth } from '@/context/AuthContext';
 import { StripeCheckoutFlow } from '@/components/payments/StripeCheckoutFlow';
+import { TestCardBanner } from '@/components/payments/TestCardBanner';
 import { loadCheckoutAddress } from '@/lib/checkoutAddressStorage';
 import { loadPendingOrder } from '@/lib/pendingOrderStorage';
 import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
@@ -291,8 +292,9 @@ export default function Checkout() {
             data-testid="payment-section"
           >
             <h2 className="text-base font-semibold text-[#3B2B1A]">Secure payment</h2>
+            <TestCardBanner />
             <p className="text-xs text-[#6B5E57]">
-              Payments are processed by Stripe. You’ll return here once the payment completes so we can confirm your order.
+              Payments are processed by Stripe. You'll return here once the payment completes so we can confirm your order.
             </p>
             <StripeCheckoutFlow
               cart={cartSnapshot}

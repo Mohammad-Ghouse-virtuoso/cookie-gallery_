@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { cookies as cookieList } from '@/data/cookies';
 import { formatPrice } from '@/utils/formatPrice';
 import { StripeCheckoutFlow, type CartSnapshot } from '@/components/payments/StripeCheckoutFlow';
+import { TestCardBanner } from '@/components/payments/TestCardBanner';
 import { getEmptyCheckoutAddress, loadCheckoutAddress, persistCheckoutAddress } from '@/lib/checkoutAddressStorage';
 import { loadCheckoutDraft, persistCheckoutDraft, clearCheckoutDraft } from '@/lib/checkoutDraft';
 import { loadPendingOrder } from '@/lib/pendingOrderStorage';
@@ -663,7 +664,8 @@ export default function CheckoutPage() {
               data-testid="payment-section"
             >
               <h2 className="text-lg font-semibold text-[#3B2B1A]">Payment</h2>
-              <p className="mt-1 text-xs text-[#6B5E57]">Payments are processed securely by Stripe.</p>
+              <TestCardBanner className="mt-3" />
+              <p className="mt-3 text-xs text-[#6B5E57]">Payments are processed securely by Stripe.</p>
 
               <dl className="mt-4 space-y-2 text-sm text-[#3B2B1A]">
                 <div className="flex items-center justify-between">
