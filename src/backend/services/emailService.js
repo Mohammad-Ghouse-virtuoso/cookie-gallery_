@@ -5,6 +5,9 @@
 
 const logger = require('../logger');
 
+// Use node-fetch if global.fetch is not available (for older Node versions or Railway)
+const fetch = global.fetch || require('node-fetch');
+
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
 const SENDER_EMAIL = 'alerts@cookiegallery.mohammad-ghouse.site';
 const SENDER_NAME = 'Cookie Gallery';

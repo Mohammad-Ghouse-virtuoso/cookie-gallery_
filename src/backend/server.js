@@ -9,6 +9,9 @@ const path = require('path');
 const admin = require('firebase-admin');
 const rateLimit = require('express-rate-limit');
 
+// Use node-fetch if global.fetch is not available (for older Node versions)
+const fetch = global.fetch || require('node-fetch');
+
 // Load env (supports multiline private key with \n)
 // 1) Root .env
 require('dotenv').config();
