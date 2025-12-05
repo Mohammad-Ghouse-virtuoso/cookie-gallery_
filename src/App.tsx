@@ -28,6 +28,7 @@ import SocialComingSoon from "./pages/SocialComingSoon";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
 import CartPersistenceBanner from "./components/CartPersistenceBanner";
+import { Analytics } from "@vercel/analytics/react";
 
 // Import AuthProvider
 import { AuthProvider } from "./context/AuthContext";
@@ -102,6 +103,7 @@ function App() {
           <GiftExperienceProvider>
             <AppContent />
             <GiftModal />
+            <Analytics />
           </GiftExperienceProvider>
         </CartProvider>
       </AuthProvider>
