@@ -26,7 +26,12 @@
     "perf:checkout": "k6 run performance/checkout-flow.test.js",
     "perf:smoke": "k6 run --vus 1 --duration 30s performance/health-check.test.js",
     "perf:all": "npm run perf:health && npm run perf:webhook && npm run perf:checkout",
-    "optimize:images": "node scripts/optimize-images.js"
+    "optimize:images": "node scripts/optimize-images.js",
+    "ops": "node scripts/ops-dashboard.cjs",
+    "ops:summary": "node scripts/ops-dashboard.cjs summary",
+    "ops:users": "node scripts/ops-dashboard.cjs users",
+    "ops:orders": "node scripts/ops-dashboard.cjs orders",
+    "ops:non-buyers": "node scripts/ops-dashboard.cjs non-buyers"
   },
   "dependencies": {
     "@heroui/react": "^2.8.5",
