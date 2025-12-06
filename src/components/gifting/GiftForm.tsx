@@ -441,11 +441,21 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
       setCart(prev => {
         const next = { ...(prev as CartStateWithMeta) } as CartStateWithMeta;
         next._meta = next._meta ? { ...next._meta } : undefined;
+        
+        // Remove any direct cart entry for this box to prevent duplicates
+        // (user may have clicked "Add to Cart" before starting gift flow)
+        if (box.key in next && typeof next[box.key] === 'number') {
+          delete next[box.key];
+          if (next._meta && box.key in next._meta) {
+            delete next._meta[box.key];
+          }
+        }
+        
         next[giftLineId] = 1;
         const meta = (next._meta ??= {});
         meta[giftLineId] = {
           type: 'gift',
-          name: box.title,
+          name: `Gift: ${box.title}`,
           price: box.price,
           image: box.previewImage,
           gift: giftMetadata,
@@ -692,22 +702,27 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                         </h2>
                         <p className="text-sm text-[#6B5E57]">We ship nationwide with overnight couriers.</p>
                       </div>
-                      <AnimatePresence>
-                        {addressStatus !== 'idle' && (
-                          <motion.span
-                            key={addressStatus}
-                            initial={{ opacity: 0, y: -6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -6 }}
-                            transition={{ duration: 0.2 }}
-                            className={`self-start rounded-full px-3 py-1 text-xs font-medium ${
-                              addressStatus === 'dirty' ? 'bg-[#FCE8D6] text-[#C7803A]' : 'bg-[#E4F6E8] text-[#4C7A4F]'
-                            }`}
-                          >
-                            {addressStatus === 'dirty' ? 'Not saved yet' : 'Address saved'}
-                          </motion.span>
-                        )}
-                      </AnimatePresence>
+                      {/* Fixed-height container to prevent layout jumping */}
+                      <div className="h-7 flex items-center">
+                        <motion.span
+                          initial={false}
+                          animate={{ 
+                            opacity: addressStatus !== 'idle' ? 1 : 0,
+                            scale: addressStatus !== 'idle' ? 1 : 0.95
+                          }}
+                          transition={{ duration: 0.2 }}
+                          className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap ${
+                            addressStatus === 'dirty' 
+                              ? 'bg-[#FCE8D6] text-[#C7803A]' 
+                              : addressStatus === 'saved' 
+                                ? 'bg-[#E4F6E8] text-[#4C7A4F]' 
+                                : 'bg-transparent'
+                          }`}
+                          aria-live="polite"
+                        >
+                          {addressStatus === 'dirty' ? 'Not saved yet' : addressStatus === 'saved' ? 'Address saved' : ''}
+                        </motion.span>
+                      </div>
                     </div>
                   </header>
                   <div className="grid gap-5" role="group" aria-describedby="delivery-hint">
