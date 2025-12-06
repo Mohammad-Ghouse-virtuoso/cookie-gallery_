@@ -28,6 +28,7 @@ import SocialComingSoon from "./pages/SocialComingSoon";
 import NotFound from "./pages/NotFound";
 import { checkoutPageEnabled } from "./config/features";
 import CartPersistenceBanner from "./components/CartPersistenceBanner";
+import MaintenanceBanner from "./components/MaintenanceBanner";
 import { Analytics } from "@vercel/analytics/react";
 
 // Import AuthProvider
@@ -53,6 +54,8 @@ function AppContent() {
 
   return (
     <>
+      {/* Site-wide maintenance/notice banner - toggle in MaintenanceBanner.tsx */}
+      <MaintenanceBanner />
       {/* Conditionally render the NavBar based on the current URL */}
       {!hideNav && <NavBar />}
       {/* Show cart persistence banner on first visit */}
