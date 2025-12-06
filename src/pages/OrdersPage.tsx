@@ -28,18 +28,58 @@ goldenSeasonBoxes.forEach(box => {
 
 /**
  * Enrich order items with product catalog data (names, images)
+ * Handles regular cookies and gift items (gift:uuid or gift:boxKey:timestamp format)
  */
 function enrichOrderItems(order: SessionOrder): SessionOrder {
   const enrichedItems = order.items.map(item => {
+    // First check if item already has valid name and image (from cartDetails)
+    const hasValidName = item.name && !item.name.toLowerCase().startsWith('gift:');
+    const hasValidImage = Boolean(item.image);
+    
+    if (hasValidName && hasValidImage) {
+      return item; // Already enriched, skip
+    }
+    
+    // Try direct catalog lookup by item.id
     const catalogItem = productCatalog.get(item.id);
     if (catalogItem) {
       return {
         ...item,
-        name: catalogItem.name,
+        name: item.name && hasValidName ? item.name : catalogItem.name,
         price: item.price || catalogItem.price,
-        image: catalogItem.image,
+        image: item.image || catalogItem.image,
       };
     }
+    
+    // Handle gift items (format: gift:uuid or gift:boxKey:timestamp)
+    const isGift = item.id.toLowerCase().startsWith('gift:');
+    if (isGift) {
+      // Try to extract box key from gift ID
+      const parts = item.id.split(':');
+      if (parts.length > 1) {
+        const possibleBoxKey = parts[1];
+        // Check if it's a UUID (36 chars with dashes) or a box key
+        const isUUID = possibleBoxKey.length === 36 && possibleBoxKey.includes('-');
+        if (!isUUID) {
+          const giftBox = productCatalog.get(possibleBoxKey);
+          if (giftBox) {
+            return {
+              ...item,
+              name: giftBox.name,
+              price: item.price || giftBox.price,
+              image: item.image || giftBox.image,
+            };
+          }
+        }
+      }
+      // Fallback for gifts without matching box - use a generic gift name
+      return {
+        ...item,
+        name: item.name && hasValidName ? item.name : 'Gift Box',
+        image: item.image || goldenSeasonBoxes[0]?.previewImage,
+      };
+    }
+    
     return item;
   });
   

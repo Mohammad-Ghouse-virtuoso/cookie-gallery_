@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { PendingOrderSnapshot, PendingOrderStatus } from '@/types/checkout';
 import type { CookieData } from '@/data/cookies';
 import { addSessionOrder } from '@/lib/sessionOrderStorage';
+import { goldenSeasonBoxes } from '@/data/goldenSeasonBoxes';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -287,10 +288,46 @@ export default function PaymentStatusPage() {
           // Build order items from the cart stored in backend with proper images
           const orderItems = orderDataRaw.cart
             ? Object.entries(orderDataRaw.cart).map(([id, qty]) => {
+                // Check if this is a gift item (starts with "gift:" or "Gift:")
+                const isGift = id.toLowerCase().startsWith('gift:');
+                
+                // Get cart detail from pending order (has full metadata for gifts)
+                const cartDetail = pendingOrder?.cartDetails?.[id];
+                
+                if (isGift && cartDetail) {
+                  // Use cart detail metadata for gift items
+                  return {
+                    id,
+                    name: cartDetail.name || 'Gift Box',
+                    qty: typeof qty === 'number' ? qty : 1,
+                    price: cartDetail.price || 0,
+                    image: cartDetail.image,
+                  };
+                }
+                
                 // Get cookie details from cookies.ts for accurate data including images
                 const cookieData = cookiesData.find((c: CookieData) => c.id === id);
-                // Fallback to pendingOrder if cookie not found in static data
-                const cartDetail = pendingOrder?.cartDetails?.[id];
+                
+                // For gift items without cartDetail, try to find the box by key
+                if (isGift && !cartDetail) {
+                  // Extract box key if present (format: gift:boxKey:timestamp or gift:uuid)
+                  const parts = id.split(':');
+                  const possibleBoxKey = parts.length > 1 ? parts[1] : null;
+                  const giftBox = possibleBoxKey 
+                    ? goldenSeasonBoxes.find(b => b.key === possibleBoxKey)
+                    : null;
+                  
+                  if (giftBox) {
+                    return {
+                      id,
+                      name: giftBox.title,
+                      qty: typeof qty === 'number' ? qty : 1,
+                      price: giftBox.price,
+                      image: giftBox.previewImage,
+                    };
+                  }
+                }
+                
                 // CookieData uses 'src', CartLineItemDetail uses 'image'
                 const imageSrc = cookieData?.src || cartDetail?.image;
                 return {
