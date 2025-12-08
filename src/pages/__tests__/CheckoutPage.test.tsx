@@ -130,4 +130,16 @@ describe('CheckoutPage', () => {
       { timeout: 10000 }
     );
   }, { timeout: 15000 });
+
+  test('shows "Your contact details" as section title for all orders', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/checkout' }]}>
+        <CheckoutPage />
+      </MemoryRouter>,
+    );
+
+    // Verify the address section shows neutral "Contact details" title
+    expect(screen.getByText('Contact details')).toBeInTheDocument();
+    expect(screen.getByText('Your contact details')).toBeInTheDocument();
+  });
 });

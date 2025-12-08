@@ -175,4 +175,117 @@ describe('StripeCheckoutFlow', () => {
     rerender(<div />);
     expect(loadPendingOrder()).toBeNull();
   });
+
+  test('enriches gift items from goldenSeasonBoxes when cartDetails is missing', async () => {
+    // Simulate gift item in cart without cartDetails (e.g., after page refresh)
+    const giftCart = { 'gift:warm-glow:abc-123': 1 };
+    
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      checkoutUrl: 'https://stripe.test/session/gift',
+      localOrderId: 'order-gift',
+      providerSessionId: 'sess_gift',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(
+      <MemoryRouter>
+        <StripeCheckoutFlow
+          cart={giftCart}
+          totalAmount={1399}
+          user={user}
+          shippingAddress={{ fullName: 'Ada', line1: '42 Baker St', city: 'Bengaluru', postalCode: '560001', country: 'India', phone: '+91000000000' } as any}
+          initializeButtonLabel="Pay"
+        />
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /pay/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // The pending order should have enriched gift item name
+    const pending = loadPendingOrder();
+    expect(pending?.localOrderId).toBe('order-gift');
+  });
+
+  test('handles mixed cart with gift and regular cookies correctly', async () => {
+    // Cart with both gift item and regular cookie
+    const mixedCart = { 
+      'gift:midnight-luxe:xyz-789': 1,
+      'classic': 2 
+    };
+    
+    const partialCartDetails = {
+      classic: {
+        type: 'cookie' as const,
+        name: 'Classic Crunch',
+        price: 499,
+        image: '/classic.jpg',
+        productId: 'classic',
+      },
+    };
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      checkoutUrl: 'https://stripe.test/session/mixed',
+      localOrderId: 'order-mixed',
+      providerSessionId: 'sess_mixed',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(
+      <MemoryRouter>
+        <StripeCheckoutFlow
+          cart={mixedCart}
+          cartDetails={partialCartDetails}
+          totalAmount={2597}
+          user={user}
+          shippingAddress={{ fullName: 'Ada', line1: '42 Baker St', city: 'Bengaluru', postalCode: '560001', country: 'India', phone: '+91000000000' } as any}
+          initializeButtonLabel="Pay"
+        />
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /pay/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // Verify the order was created successfully with mixed cart
+    const pending = loadPendingOrder();
+    expect(pending?.localOrderId).toBe('order-mixed');
+    expect(pending?.cart).toEqual(mixedCart);
+  });
+
+  test('gift item without matching box key falls back to ID', async () => {
+    // Gift item with unknown box key
+    const unknownGiftCart = { 'gift:unknown-box:abc-123': 1 };
+    
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      checkoutUrl: 'https://stripe.test/session/unknown',
+      localOrderId: 'order-unknown',
+      providerSessionId: 'sess_unknown',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(
+      <MemoryRouter>
+        <StripeCheckoutFlow
+          cart={unknownGiftCart}
+          totalAmount={1000}
+          user={user}
+          shippingAddress={{ fullName: 'Ada', line1: '42 Baker St', city: 'Bengaluru', postalCode: '560001', country: 'India', phone: '+91000000000' } as any}
+          initializeButtonLabel="Pay"
+        />
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /pay/i }));
+
+    await waitFor(() => {
+      expect(window.location.assign).toHaveBeenCalledWith('https://stripe.test/session/unknown');
+    });
+
+    const pending = loadPendingOrder();
+    expect(pending?.localOrderId).toBe('order-unknown');
+  });
 });

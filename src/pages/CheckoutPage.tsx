@@ -466,8 +466,8 @@ export default function CheckoutPage() {
             <section className="rounded-[18px] border border-[rgba(226,185,127,0.28)] bg-white p-6 shadow-[0_16px_32px_rgba(59,43,26,0.08)]" id="address" aria-labelledby="checkout-address-title">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-[#8E7360]" id="checkout-address-title">Delivery address</p>
-                  <h2 className="mt-2 text-lg font-semibold text-[#3B2B1A]">Where should we deliver?</h2>
+                  <p className="text-xs uppercase tracking-[0.28em] text-[#8E7360]" id="checkout-address-title">Contact details</p>
+                  <h2 className="mt-2 text-lg font-semibold text-[#3B2B1A]">Your contact details</h2>
                 </div>
                 {!isEditingAddress && savedAddress && (
                   <button

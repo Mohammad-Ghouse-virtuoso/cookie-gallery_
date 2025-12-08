@@ -423,9 +423,10 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
     setIsAddingToCart(true);
 
     try {
-      const giftLineId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? `gift:${crypto.randomUUID()}`
-        : `gift:${box.key}:${Date.now()}`;
+      const uuid = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : String(Date.now());
+      const giftLineId = `gift:${box.key}:${uuid}`;
 
       const giftMetadata: CartGiftDetails = {
         boxKey: box.key,
@@ -698,7 +699,7 @@ export default function GiftForm({ box, mode, onRequestClose, onFlowComplete, he
                       <div className="space-y-2">
                         <p className="text-xs uppercase tracking-[0.32em] text-[#8E7360]">Step 3</p>
                         <h2 className="text-[1.9rem] font-semibold text-[#3B2B1A]" style={{ fontFamily: '"Playfair Display", serif' }}>
-                          Where should we send it?
+                          Recipient's Delivery Address
                         </h2>
                         <p className="text-sm text-[#6B5E57]">We ship nationwide with overnight couriers.</p>
                       </div>

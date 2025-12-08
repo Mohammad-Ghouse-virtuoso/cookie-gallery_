@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { clearPendingOrder, loadPendingOrder, persistPendingOrder, updatePendingOrderStatus } from '@/lib/pendingOrderStorage';
 import type { PendingOrderSnapshot } from '@/types/checkout';
 import type { CartLineItemDetail } from '@/types/cart';
+import { goldenSeasonBoxes } from '@/data/goldenSeasonBoxes';
 import * as Sentry from '@sentry/react';
 
 export type CartSnapshot = Record<string, number>;
@@ -205,9 +206,25 @@ export function StripeCheckoutFlow({
     onCartCleared?.();
     onPaymentCompletedChange?.(true);
     
-    // Prepare order data for success page
+    // Prepare order data for success page (with gift enrichment fallback)
     const orderItems = Object.entries(cart).map(([id, qty]) => {
       const detail = cartDetails?.[id];
+      // For gift items, enrich from goldenSeasonBoxes if cartDetails is missing
+      if (id.startsWith('gift:') && !detail) {
+        const parts = id.split(':');
+        // Format: gift:boxKey:uuid
+        const boxKey = parts.length >= 2 ? parts[1] : null;
+        const box = boxKey ? goldenSeasonBoxes.find(b => b.key === boxKey) : null;
+        if (box) {
+          return {
+            id,
+            name: `Gift: ${box.title}`,
+            qty,
+            price: box.price,
+            image: box.previewImage,
+          };
+        }
+      }
       return {
         id,
         name: detail?.name || id,
