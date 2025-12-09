@@ -169,12 +169,10 @@ export function StripeCheckoutFlow({
   }, [syncFromStorage]);
 
   const requireAuth = useCallback(() => {
-    if (!user) {
-      setBanner(buildBanner('error', 'You must be signed in to continue to payment.'));
-      return false;
-    }
+    // Guest checkout is now allowed - no auth required
+    // This function is kept for backward compatibility but always returns true
     return true;
-  }, [user]);
+  }, []);
 
   const ensureOnline = useCallback(() => {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -423,6 +421,7 @@ export function StripeCheckoutFlow({
           metadata: extraOrderData ?? {},
           cartDetails,
           customerEmail: user?.email ?? shippingAddress?.email ?? null,
+          customerName: shippingAddress?.fullName ?? user?.displayName ?? null,
         }),
       });
       if (!response.ok) {

@@ -1,7 +1,7 @@
 
 // src/context/AuthContext.tsx
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, signInWithCustomToken, getRedirectResult, setPersistence, browserLocalPersistence, type User } from 'firebase/auth'; // Import User type
 import { initializeApp, getApps } from 'firebase/app'; // Safe Firebase app init
 import { getFirestore, doc, setDoc } from 'firebase/firestore'; // For saving user profile
@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [bootChecked, setBootChecked] = useState(isE2ETestMode); // Becomes true after /health processed
   const [reloadChecked, setReloadChecked] = useState(isE2ETestMode); // ensures we process refresh policy exactly once
   const [authDisabled, setAuthDisabled] = useState(isE2ETestMode); // If Firebase config missing or init fails
+  const sessionTracked = useRef(false); // Track session only once per app load
 
   // Helper to verify minimal Firebase config presence (avoid throwing in dev)
   const hasConfig = Boolean(
@@ -204,6 +205,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   }, [hasConfig]);
+
+  // Track session for analytics (once per app load, after auth state is determined)
+  useEffect(() => {
+    if (isE2ETestMode) return;
+    if (loading) return; // Wait for auth state to be determined
+    if (!bootChecked) return; // Wait for boot check
+    if (sessionTracked.current) return; // Only track once
+    
+    sessionTracked.current = true;
+    
+    // Determine auth mode
+    let mode: 'guest' | 'google' | 'phone' = 'guest';
+    if (user) {
+      // Check provider data to determine sign-in method
+      const providers = user.providerData || [];
+      const hasGoogle = providers.some(p => p?.providerId === 'google.com');
+      const hasPhone = providers.some(p => p?.providerId === 'phone');
+      
+      if (hasGoogle) {
+        mode = 'google';
+      } else if (hasPhone) {
+        mode = 'phone';
+      } else if (user.email) {
+        // Fallback: if has email, likely Google
+        mode = 'google';
+      } else if (user.phoneNumber) {
+        // Fallback: if has phone, likely phone auth
+        mode = 'phone';
+      }
+    }
+    
+    // Track session to backend (fire and forget)
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    fetch(`${apiBase}/api/track-visit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    }).catch(() => {
+      // Silently ignore tracking failures - non-critical
+    });
+    
+    console.log('AuthContext: Session tracked as', mode);
+  }, [loading, bootChecked, user]);
 
   async function saveUserProfileToFirestore(user: User, firestore: any) {
     const userRef = doc(firestore, 'users', user.uid); // doc id = UID

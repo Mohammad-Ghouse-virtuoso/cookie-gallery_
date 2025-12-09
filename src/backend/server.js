@@ -152,6 +152,29 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
+// Optional auth middleware: allows guests (req.user = null) or authenticated users
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    const parts = authHeader.split(' ');
+    if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
+      const decoded = await admin.auth().verifyIdToken(parts[1]);
+      req.user = { uid: decoded.uid, email: decoded.email || null };
+    } else {
+      req.user = null; // Guest user
+    }
+    return next();
+  } catch (e) {
+    // Invalid token = treat as guest (don't reject)
+    req.user = null;
+    return next();
+  }
+};
+
+// Analytics constants
+const ANALYTICS_COLLECTION = 'site_analytics';
+const ANALYTICS_COUNTERS_DOC = 'counters';
+
 // Initialize Stripe instance
 let stripeInstance = null;
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
@@ -289,6 +312,74 @@ app.get('/health', async (req, res) => {
   const status = healthCheck.ok ? 200 : 503;
   res.status(status).json(healthCheck);
 });
+
+// --- Analytics Tracking Endpoints ---
+
+// Rate limiter for analytics (stricter to prevent abuse)
+const analyticsLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute per IP
+  message: { success: false, message: 'Too many tracking requests.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// POST /api/track-visit - Track visitor session (public, no auth required)
+app.post('/api/track-visit', analyticsLimiter, async (req, res) => {
+  try {
+    if (!adminDb) {
+      return res.status(503).json({ success: false, message: 'Database not configured' });
+    }
+
+    const { mode } = req.body; // 'guest', 'google', or 'phone'
+    const validModes = ['guest', 'google', 'phone'];
+    const trackMode = validModes.includes(mode) ? mode : 'guest';
+
+    const statsRef = adminDb.collection(ANALYTICS_COLLECTION).doc(ANALYTICS_COUNTERS_DOC);
+    await statsRef.set({
+      [`sessions.${trackMode}`]: admin.firestore.FieldValue.increment(1),
+      totalSessions: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    logger.info('[analytics] Session tracked', { mode: trackMode });
+    res.json({ success: true });
+  } catch (error) {
+    logger.error('[analytics] Failed to track visit', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to track visit' });
+  }
+});
+
+// GET /api/stats - Get analytics counters (protected, admin only)
+app.get('/api/stats', requireAuth, async (req, res) => {
+  try {
+    if (!adminDb) {
+      return res.status(503).json({ success: false, message: 'Database not configured' });
+    }
+
+    const statsDoc = await adminDb.collection(ANALYTICS_COLLECTION).doc(ANALYTICS_COUNTERS_DOC).get();
+    const stats = statsDoc.exists ? statsDoc.data() : { sessions: {}, totalSessions: 0, totalOrders: 0 };
+
+    res.json({ success: true, stats });
+  } catch (error) {
+    logger.error('[analytics] Failed to get stats', { error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to get stats' });
+  }
+});
+
+// Helper to increment order counter (called after successful payment)
+const incrementOrderCount = async () => {
+  if (!adminDb) return;
+  try {
+    const statsRef = adminDb.collection(ANALYTICS_COLLECTION).doc(ANALYTICS_COUNTERS_DOC);
+    await statsRef.set({
+      totalOrders: admin.firestore.FieldValue.increment(1),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    logger.warn('[analytics] Failed to increment order count', { error: error.message });
+  }
+};
 
 // --- Newsletter Subscription (Brevo) ---
 const BREVO_API_KEY = process.env.BREVO_API_KEY;
@@ -712,7 +803,7 @@ app.post('/save-order-data', requireAuth, async (req, res) => {
 
 // --- New resilient checkout flow endpoints ---
 
-app.post('/api/create-order', requireAuth, async (req, res) => {
+app.post('/api/create-order', optionalAuth, async (req, res) => {
   if (!stripeInstance) {
     return res.status(503).json({ message: 'Stripe is not configured on the server.' });
   }
@@ -729,6 +820,8 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
     const shippingAddress = req.body?.shippingAddress || null;
     const metadata = req.body?.metadata || {};
     const customerEmail = (req.body?.customerEmail || req.user?.email || '').toLowerCase();
+    const customerName = req.body?.customerName || shippingAddress?.fullName || null;
+    const isGuest = !req.user;
     const amountInMinorUnits = toMinorUnits(totalAmount);
 
     if (!cart || Object.keys(cart).length === 0) {
@@ -795,6 +888,8 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       localOrderId,
       userEmail: customerEmail,
       userUid: req.user?.uid || null,
+      customerName,
+      isGuest,
       status: 'pending',
       totalAmount,
       currency: 'INR',
@@ -846,7 +941,7 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
       }
     }
 
-    logPaymentEvent('order_created', { localOrderId, sessionId: session.id, email: customerEmail });
+    logPaymentEvent('order_created', { localOrderId, sessionId: session.id, email: customerEmail, isGuest });
     res.status(200).json({
       checkoutUrl: session.url,
       localOrderId,
@@ -858,7 +953,7 @@ app.post('/api/create-order', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/order-status', requireAuth, async (req, res) => {
+app.get('/api/order-status', optionalAuth, async (req, res) => {
   if (!adminDb) {
     return res.status(503).json({ message: 'Firestore not configured on server.' });
   }
@@ -948,7 +1043,7 @@ app.get('/api/order-status', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/payment-status', requireAuth, async (req, res) => {
+app.get('/api/payment-status', optionalAuth, async (req, res) => {
   if (!adminDb) {
     return res.status(503).json({ message: 'Firestore not configured on server.' });
   }
@@ -962,10 +1057,8 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'sessionId or orderId is required.' });
   }
 
+  // Guest users can access order status via orderId (for payment confirmation flow)
   const tokenEmail = typeof req.user?.email === 'string' ? req.user.email.toLowerCase() : null;
-  if (!tokenEmail) {
-    return res.status(400).json({ message: 'Authenticated email missing on token.' });
-  }
 
   try {
     let docRef = null;
@@ -1011,12 +1104,12 @@ app.get('/api/payment-status', requireAuth, async (req, res) => {
     }
 
     const storedEmail = typeof orderData.userEmail === 'string' ? orderData.userEmail.toLowerCase() : '';
-    if (storedEmail && storedEmail !== tokenEmail) {
-      logger.warn('[payment-status] email mismatch - allowing in local dev', { storedEmail, tokenEmail });
-      // In production, this would return 403, but allow in local development
-      // Uncomment below for production:
-      // return res.status(403).json({ message: 'Forbidden: order does not belong to the current user.' });
+    // For authenticated users, check email ownership; guests can only access via orderId they received
+    if (tokenEmail && storedEmail && storedEmail !== tokenEmail) {
+      logger.warn('[payment-status] email mismatch', { storedEmail, tokenEmail });
+      return res.status(403).json({ message: 'Forbidden: order does not belong to the current user.' });
     }
+    // For guest users (no tokenEmail), allow access if they have the orderId (which they got from our system)
 
     if (!session && (sessionIdParam || orderData.providerSessionId)) {
       const lookupSessionId = sessionIdParam || orderData.providerSessionId;

@@ -291,4 +291,91 @@ describe('StripeCheckoutFlow', () => {
     // The cart key should be stored as-is (gift:unknown-box:abc-123)
     expect(pending?.cart).toEqual(unknownGiftCart);
   });
+
+  test('allows guest checkout without user (user is null)', async () => {
+    const guestCart = { classic: 1 };
+    const guestAddress = {
+      fullName: 'Guest User',
+      email: 'guest@example.com',
+      phone: '+911234567890',
+      line1: '123 Guest St',
+      city: 'Mumbai',
+      postalCode: '400001',
+      country: 'India',
+    };
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      checkoutUrl: 'https://stripe.test/session/guest',
+      localOrderId: 'order-guest',
+      providerSessionId: 'sess_guest',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(
+      <MemoryRouter>
+        <StripeCheckoutFlow
+          cart={guestCart}
+          totalAmount={499}
+          user={null}
+          shippingAddress={guestAddress}
+          initializeButtonLabel="Pay as Guest"
+        />
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /pay as guest/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    // Verify the request was made without requiring auth
+    const [, callOptions] = fetchMock.mock.calls[0];
+    const payload = JSON.parse((callOptions?.body as string) ?? '{}');
+    expect(payload.customerEmail).toBe('guest@example.com');
+    expect(payload.customerName).toBe('Guest User');
+
+    const pending = loadPendingOrder();
+    expect(pending?.localOrderId).toBe('order-guest');
+  });
+
+  test('guest checkout sends customerName from shippingAddress', async () => {
+    const guestAddress = {
+      fullName: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '+919876543210',
+      line1: '456 Test Ave',
+      city: 'Delhi',
+      postalCode: '110001',
+      country: 'India',
+    };
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({
+      checkoutUrl: 'https://stripe.test/session/jane',
+      localOrderId: 'order-jane',
+      providerSessionId: 'sess_jane',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    render(
+      <MemoryRouter>
+        <StripeCheckoutFlow
+          cart={{ deluxe: 1 }}
+          totalAmount={799}
+          user={null}
+          shippingAddress={guestAddress}
+          initializeButtonLabel="Pay"
+        />
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /pay/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    const [, callOptions] = fetchMock.mock.calls[0];
+    const payload = JSON.parse((callOptions?.body as string) ?? '{}');
+    expect(payload.customerName).toBe('Jane Doe');
+    expect(payload.customerEmail).toBe('jane@example.com');
+  });
 });

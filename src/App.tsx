@@ -68,28 +68,30 @@ function AppContent() {
         <Route path="/order-success" element={<OrderSuccess />} />
         <Route path="/receipt" element={<Receipt />} />
         <Route path="/social/:platform" element={<SocialComingSoon />} />
-        {/* Protected routes (these will have the NavBar rendered) */}
+        
+        {/* Public routes (guests can browse and checkout) */}
+        <Route index element={<Home />} />
+        <Route path="home" element={<Home />} />
+        <Route path="cookies" element={<CookieCatalogue />} />
+        <Route path="product/:cookieId" element={<ProductDetailPage />} />
+        <Route
+          path="checkout"
+          element={checkoutPageEnabled ? <CheckoutPage /> : <CheckoutLegacy />}
+        />
+        <Route
+          path="checkout/address"
+          element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
+        />
+        <Route path="payment-status" element={<PaymentStatusPage />} />
+        <Route path="story" element={<Story />} />
+        <Route path="behind-the-scenes" element={<BehindTheScenes />} />
+        <Route path="privacy" element={<PrivacyPolicy />} />
+        <Route path="golden-season" element={<GoldenSeason />} />
+        <Route path="gift/:boxId" element={<GiftExperiencePage />} />
+        
+        {/* Protected routes (require sign-in) */}
         <Route path="/" element={<ProtectedRoutes />}>
-          {/* Explicit home route to support navigate('/home') after sign-in */}
-          <Route index element={<Home />} />
-          <Route path="home" element={<Home />} />
-          <Route path="cookies" element={<CookieCatalogue />} />
-          <Route path="product/:cookieId" element={<ProductDetailPage />} />
-          <Route
-            path="checkout"
-            element={checkoutPageEnabled ? <CheckoutPage /> : <CheckoutLegacy />}
-          />
-          <Route
-            path="checkout/address"
-            element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
-          />
-          <Route path="payment-status" element={<PaymentStatusPage />} />
           <Route path="orders" element={<OrdersPage />} />
-          <Route path="story" element={<Story />} />
-          <Route path="behind-the-scenes" element={<BehindTheScenes />} />
-          <Route path="privacy" element={<PrivacyPolicy />} />
-          <Route path="golden-season" element={<GoldenSeason />} />
-          <Route path="gift/:boxId" element={<GiftExperiencePage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

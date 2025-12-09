@@ -45,7 +45,7 @@ function computeAddressErrors(address: Partial<CheckoutAddress> | undefined, use
   };
 
   if (!stringFor('fullName').trim()) {
-    errors.fullName = 'Add the recipient name.';
+    errors.fullName = 'Add your full name.';
   }
   const phone = stringFor('phone');
   if (!phone.trim()) {
@@ -53,10 +53,11 @@ function computeAddressErrors(address: Partial<CheckoutAddress> | undefined, use
   } else if (!PHONE_PATTERN.test(phone.trim())) {
     errors.phone = 'Enter a valid phone number.';
   }
-  // Validate email for phone sign-in users
-  const needsEmail = user && !user.email;
-  if (needsEmail) {
-    const email = stringFor('email').trim();
+  // Email is always required (for guests, phone sign-in users, and for receipt confirmation)
+  const email = stringFor('email').trim();
+  // Only validate email if user doesn't already have one from auth
+  const userHasEmail = user?.email && user.email.trim().length > 0;
+  if (!userHasEmail) {
     if (!email) {
       errors.email = 'Email is required for order confirmation.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -528,7 +529,8 @@ export default function CheckoutPage() {
                       <p className="mt-1 text-xs text-[#C44531]">{errors.phone}</p>
                     ) : null}
                   </div>
-                  {user && !user.email && (
+                  {/* Email field for guests or phone sign-in users (anyone without email from auth) */}
+                  {(!user || !user.email) && (
                     <div>
                       <label className="block text-xs font-semibold uppercase tracking-[0.2em] text-[#8E7360]" htmlFor="checkout-email">Email address</label>
                       <input
