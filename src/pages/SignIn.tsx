@@ -24,7 +24,7 @@ declare global {
 }
 
 export default function SignIn() {
-  const { user, loading, authDisabled, setGuestMode } = useAuth();
+  const { user, loading, authDisabled, setGuestMode, guestMode } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
@@ -38,13 +38,12 @@ export default function SignIn() {
     try { return getAuth(); } catch { return null as any; }
   });
 
-  // If already signed in, redirect away from /signin to home
+  // If already signed in OR in guest mode, redirect away from /signin to home
   useEffect(() => {
-    if (!loading && user) {
-      console.log('SignIn: user already signed in, redirecting to /home');
+    if (!loading && (user || guestMode)) {
       navigate('/home', { replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, guestMode]);
 
   // Handle redirect result (Google sign-in) on page load
   useEffect(() => {

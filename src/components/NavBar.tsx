@@ -1,8 +1,8 @@
 // src/components/NavBar.tsx
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo, useState, useRef, useEffect, type FocusEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaCookieBite } from 'react-icons/fa';
-import { FiPackage, FiLogOut } from 'react-icons/fi';
+import { FiPackage, FiLogOut, FiLogIn } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import CartPreviewModal, { type CartPreviewItem, type CartTotals } from './CartPreviewModal';
@@ -119,8 +119,26 @@ export default function NavBar() {
     return anchorHash ? `${base}${anchorHash}` : base;
   };
 
+  const isGuest = guestMode && !user;
   const allowGuestExperience = authDisabled && !user;
-  const showSignedInUi = Boolean(user) || allowGuestExperience;
+  const showSignedInUi = Boolean(user) || isGuest || allowGuestExperience;
+  const identityTitle = user?.displayName || user?.email || user?.phoneNumber || (isGuest ? 'Guest Explorer' : 'Cookie Friend');
+  const identityStatusLabel = user ? 'Signed in' : isGuest ? 'Guest mode' : 'Demo access';
+  const identitySubline = user?.email || user?.phoneNumber || (isGuest ? 'Browsing without an account' : 'Try guest checkout');
+  const showSessionAction = Boolean(user) || isGuest;
+  const quickAuthCta = user ? 'Sign Out' : isGuest ? 'Sign In' : 'Sign In';
+  const quickAuthHint = user ? 'Sign off securely' : isGuest ? 'Jump into your account' : 'Unlock full access';
+
+  const handleGuestExit = () => {
+    setGuestMode(false);
+    navigate('/signin', { replace: true });
+  };
+
+  const handleAvatarPanelBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setShowAvatarMenu(false);
+    }
+  };
 
   return (
     <>
@@ -146,101 +164,111 @@ export default function NavBar() {
               <span>Home</span>
             </HomeNavLink>
 
-            {/* Animated Cart Button */}
-            <AnimatedCartButton 
-              onClick={() => setShowCart(true)}
-              quantity={cartBadgeCount}
-            />
-
-            {/* Identity avatar with hover dropdown + Sign Out button */}
             <div className="flex items-center gap-3">
-              {/* Avatar with hover dropdown for Orders */}
-              <div 
-                className="relative z-50" 
-                ref={avatarMenuRef}
-                onMouseEnter={() => setShowAvatarMenu(true)}
-                onMouseLeave={() => setShowAvatarMenu(false)}
-              >
-                <button
-                  className="block transition-transform duration-200 hover:scale-105"
-                  style={{ outline: 'none', border: 'none', background: 'none', padding: 0 }}
-                  aria-label="User menu"
-                  aria-expanded={showAvatarMenu}
-                >
-                  {user?.photoURL ? (
-                    <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover block" />
-                  ) : guestMode ? (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white font-bold flex items-center justify-center shadow-md">
-                      G
-                    </div>
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-[#5b3a20] text-white font-semibold flex items-center justify-center">
-                      {(user?.email || user?.phoneNumber || 'U').slice(0,1).toUpperCase()}
-                    </div>
-                  )}
-                </button>
-                
-                {/* Hover Dropdown - Orders */}
+              <AnimatedCartButton 
+                onClick={() => setShowCart(true)}
+                quantity={cartBadgeCount}
+              />
+
+              {/* Identity avatar with hover panel + session controls */}
+              <IdentityTray>
+                {/* Avatar with hover panel */}
                 <div 
-                  className={`absolute right-0 top-full mt-2 z-[60] transition-all duration-200 ${
-                    showAvatarMenu 
-                      ? 'opacity-100 visible translate-y-0' 
-                      : 'opacity-0 invisible -translate-y-1 pointer-events-none'
-                  }`}
+                  className="relative z-50" 
+                  ref={avatarMenuRef}
+                  onMouseEnter={() => setShowAvatarMenu(true)}
+                  onMouseLeave={() => setShowAvatarMenu(false)}
+                  onFocusCapture={() => setShowAvatarMenu(true)}
+                  onBlurCapture={handleAvatarPanelBlur}
                 >
-                  <div className="w-52 bg-white rounded-xl shadow-lg border border-[#dba661]/20 overflow-hidden">
-                    {/* User info header */}
-                    <div className="px-4 py-3 bg-gradient-to-r from-[#fdf6ec] to-[#f8eddc]">
-                      <p className="text-sm font-semibold text-[#5b3a20] truncate">
-                        {user?.displayName || user?.email || user?.phoneNumber || (guestMode ? 'Guest Explorer 🍪' : 'Guest')}
-                      </p>
-                      <p className="text-xs text-[#8b6914] truncate mt-0.5">
-                        {user?.email || user?.phoneNumber || (guestMode ? 'Browsing without an account' : 'Guest checkout enabled')}
-                      </p>
-                    </div>
-                    
-                    {/* Orders button */}
-                    <button
+                  <button
+                    className="block transition-transform duration-200 hover:scale-105"
+                    style={{ outline: 'none', border: 'none', background: 'none', padding: 0 }}
+                    aria-label="User menu"
+                    aria-expanded={showAvatarMenu}
+                  >
+                    {user?.photoURL ? (
+                      <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover block" />
+                    ) : guestMode ? (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white font-bold flex items-center justify-center shadow-md">
+                        G
+                      </div>
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-[#5b3a20] text-white font-semibold flex items-center justify-center">
+                        {(user?.email || user?.phoneNumber || 'U').slice(0,1).toUpperCase()}
+                      </div>
+                    )}
+                  </button>
+                  
+                  <QuickActionsPanel
+                    role="menu"
+                    aria-hidden={!showAvatarMenu}
+                    $visible={showAvatarMenu}
+                  >
+                    <QuickPanelHeader>
+                      <span className="title">{identityTitle}</span>
+                      <span className="subtitle">{identitySubline}</span>
+                    </QuickPanelHeader>
+                    <QuickActionButton
+                      type="button"
                       onClick={() => {
                         setShowAvatarMenu(false);
                         navigate('/orders');
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150 cursor-pointer"
                     >
-                      <FiPackage className="w-4 h-4 text-[#dba661]" />
-                      <span className="font-medium">My Orders</span>
-                    </button>
-                    
-                    {/* Sign In button for guests */}
-                    {guestMode && !user && (
-                      <button
-                        onClick={() => {
-                          setShowAvatarMenu(false);
-                          setGuestMode(false);
+                      <FiPackage className="action-icon" />
+                      <div>
+                        <span className="label">My Orders</span>
+                        <span className="hint">Track your recent treats</span>
+                      </div>
+                    </QuickActionButton>
+                    <QuickActionButton
+                      type="button"
+                      onClick={() => {
+                        setShowAvatarMenu(false);
+                        if (user) {
+                          handleSignOutClick();
+                        } else if (isGuest) {
+                          handleGuestExit();
+                        } else {
                           navigate('/signin');
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150 cursor-pointer border-t border-[#dba661]/10"
-                      >
-                        <FiLogOut className="w-4 h-4 text-[#dba661] rotate-180" />
-                        <span className="font-medium">Sign In</span>
-                      </button>
-                    )}
-                  </div>
+                        }
+                      }}
+                    >
+                      {user ? (
+                        <FiLogOut className="action-icon" />
+                      ) : (
+                        <FiLogIn className="action-icon" />
+                      )}
+                      <div>
+                        <span className="label">{quickAuthCta}</span>
+                        <span className="hint">{quickAuthHint}</span>
+                      </div>
+                    </QuickActionButton>
+                  </QuickActionsPanel>
                 </div>
-              </div>
 
-              {/* Sign Out Button */}
-              {user && (
-                <SignOutButton onClick={handleSignOutClick} aria-label="Sign out">
-                  <FiLogOut className="sign-out-icon" />
-                  <span>Sign Out</span>
-                </SignOutButton>
-              )}
+                <IdentityMeta>
+                  <IdentityStatus>{identityStatusLabel}</IdentityStatus>
+                  <IdentityName>{identityTitle}</IdentityName>
+                </IdentityMeta>
+
+                {showSessionAction && (
+                  <SessionActionButton
+                    onClick={user ? handleSignOutClick : handleGuestExit}
+                    aria-label={user ? 'Sign out' : 'Exit guest mode'}
+                  >
+                    <FiLogOut className="session-action-icon" />
+                    <span>{user ? 'Sign Out' : 'Exit Guest'}</span>
+                  </SessionActionButton>
+                )}
+              </IdentityTray>
             </div>
           </>
         ) : (
           <Link
             to="/signin"
+            onClick={() => setGuestMode(false)}
             className="px-5 py-2.5 rounded-full text-[color:#5b3a20] bg-[color:#f8eddc] font-semibold transition-all duration-200 text-base hover:shadow-[0_2px_8px_rgba(219,166,97,0.25)] hover:-translate-y-0.5"
           >
             Sign In
@@ -390,71 +418,187 @@ const HomeNavLink = styled(Link)`
   }
 `;
 
-const SignOutButton = styled.button`
-  --btn-bg: linear-gradient(145deg, #e2b980 0%, #d4a574 40%, #c99a65 100%);
-  --btn-glow: rgba(212, 165, 116, 0.35);
-  
+const IdentityTray = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(219, 166, 97, 0.35);
+  box-shadow: 0 10px 30px rgba(219, 166, 97, 0.15);
+  backdrop-filter: blur(10px);
+`;
+
+const IdentityMeta = styled.div`
+  display: none;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 120px;
+
+  @media (min-width: 640px) {
+    display: flex;
+  }
+`;
+
+const IdentityStatus = styled.span`
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c29357;
+  opacity: 0.85;
+`;
+
+const IdentityName = styled.span`
+  font-size: 13px;
+  font-weight: 600;
+  color: #5b3a20;
+`;
+
+const SessionActionButton = styled.button`
+  --btn-bg: linear-gradient(135deg, #fdeedc 0%, #f2cfab 100%);
+  --btn-bg-hover: linear-gradient(135deg, #ffe9cf 0%, #f4c48f 100%);
+
   outline: none;
   cursor: pointer;
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 0.45rem 0.85rem;
   font-family: inherit;
-  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.01em;
+  font-size: 12px;
   border-radius: 50px;
-  overflow: hidden;
   background: var(--btn-bg);
-  color: #4a3728;
-  box-shadow: 
-    0 2px 8px var(--btn-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: all 0.35s ease;
-  z-index: 10;
+  color: #654427;
+  box-shadow:
+    0 3px 10px rgba(212, 165, 116, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: all 0.25s ease;
 
-  .sign-out-icon {
+  .session-action-icon {
     width: 14px;
     height: 14px;
-    transition: transform 0.35s ease;
-    opacity: 0.85;
+    opacity: 0.8;
+    transition: transform 0.25s ease, opacity 0.25s ease;
   }
 
   span {
-    opacity: 0.9;
+    white-space: nowrap;
   }
 
   &:hover {
-    background: linear-gradient(145deg, #ecc997 0%, #dfb682 40%, #d4a872 100%);
-    box-shadow: 
-      0 4px 16px rgba(212, 165, 116, 0.45),
-      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    background: var(--btn-bg-hover);
+    box-shadow:
+      0 6px 16px rgba(212, 165, 116, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
     transform: translateY(-1px);
   }
 
-  &:hover .sign-out-icon {
-    transform: translateX(2px);
-    opacity: 1;
-  }
-
-  &:hover span {
+  &:hover .session-action-icon {
+    transform: translateX(1px);
     opacity: 1;
   }
 
   &:active {
-    transform: translateY(0) scale(0.98);
-    box-shadow: 
-      0 1px 4px var(--btn-glow),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(0);
+    box-shadow:
+      0 2px 6px rgba(212, 165, 116, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.45);
   }
 
   @media (max-width: 640px) {
+    gap: 0;
+    padding: 0.45rem 0.55rem;
+
     span {
       display: none;
     }
-    padding: 0.5rem 0.6rem;
+  }
+`;
+
+const QuickActionsPanel = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 240px;
+  padding: 0.75rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(219, 166, 97, 0.35);
+  box-shadow: 0 20px 45px rgba(91, 58, 32, 0.16);
+  backdrop-filter: blur(12px);
+  transform: translateY(${({ $visible }) => ($visible ? '0' : '6px')});
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 60;
+`;
+
+const QuickPanelHeader = styled.div`
+  padding-bottom: 0.55rem;
+  margin-bottom: 0.45rem;
+  border-bottom: 1px solid rgba(219, 166, 97, 0.25);
+
+  .title {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #5b3a20;
+    margin-bottom: 2px;
+  }
+
+  .subtitle {
+    display: block;
+    font-size: 11px;
+    color: #9d7a4b;
+  }
+`;
+
+const QuickActionButton = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.4rem;
+  border-radius: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: #5b3a20;
+  transition: background 0.2s ease, transform 0.2s ease;
+
+  .action-icon {
+    width: 18px;
+    height: 18px;
+    color: #d4a574;
+    flex-shrink: 0;
+  }
+
+  .label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.1;
+    display: block;
+  }
+
+  .hint {
+    display: block;
+    font-size: 11px;
+    color: #9d7a4b;
+    margin-top: 2px;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(248, 237, 220, 0.9);
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;

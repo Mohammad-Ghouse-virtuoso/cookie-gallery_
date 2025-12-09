@@ -102,7 +102,7 @@ function NewsletterForm() {
 
 export default function Home() {
   useCart();
-  const { user, loading, authDisabled } = useAuth(); // <--- ADDED: Get user, loading state, and authDisabled
+  const { user, loading, authDisabled, guestMode } = useAuth(); // <--- ADDED: Get user, loading state, authDisabled, and guest flag
   const location = useLocation(); // <--- ADDED: Hook to access URL parameters
   const navigate = useNavigate(); // <--- ADDED: Hook for navigation
 
@@ -122,10 +122,10 @@ export default function Home() {
 
   // <--- ADDED: useEffect to redirect if user logs out on this page
   useEffect(() => {
-    if (!loading && !user && !authDisabled) {
+    if (!loading && !authDisabled && !user && !guestMode) {
       navigate('/signin', { replace: true });
     }
-  }, [user, loading, authDisabled, navigate]);
+  }, [user, loading, authDisabled, guestMode, navigate]);
 
   // Reserved for future quick-add widgets
 

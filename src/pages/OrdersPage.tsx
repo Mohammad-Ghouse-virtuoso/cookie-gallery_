@@ -244,14 +244,14 @@ function DemoModeBanner() {
 // Quirky guest mode banner
 function GuestModeBanner() {
   return (
-    <div className="mb-6 p-5 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 border border-purple-200/60 rounded-2xl">
+    <div className="mb-6 p-5 bg-gradient-to-r from-[#fff8f0] via-[#fff1e3] to-[#fbe3c7] border border-[#f1d4b5]/70 rounded-2xl shadow-[0_18px_40px_rgba(146,101,51,0.08)]">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-md">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#ffd9b4] via-[#f8c598] to-[#ecad7d] flex items-center justify-center flex-shrink-0 shadow-md">
           <span className="text-2xl">🍪</span>
         </div>
         <div className="flex-1">
-          <h4 className="font-bold text-purple-900 text-lg">Hey there, mysterious cookie lover! 👋</h4>
-          <p className="text-sm text-purple-700 mt-1 mb-4 leading-relaxed">
+          <h4 className="font-bold text-[#7c4f24] text-lg">Hey there, mysterious cookie lover! 👋</h4>
+          <p className="text-sm text-[#8b5a2b] mt-1 mb-4 leading-relaxed">
             You're browsing incognito—we like your style! ✨<br />
             Order history? That's for signed-in folks.<br />
             <span className="font-medium">But here's a cookie for the road: 🍪</span>
@@ -266,7 +266,7 @@ function GuestModeBanner() {
             </Link>
             <Link
               to="/signin"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-purple-200 rounded-xl text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-[#e6c39e] rounded-xl text-sm font-medium text-[#8b5a2b] hover:bg-[#fff7ed] hover:border-[#d6b186] transition-all shadow-sm"
             >
               <FcGoogle className="w-4 h-4" />
               Sign in to track orders
