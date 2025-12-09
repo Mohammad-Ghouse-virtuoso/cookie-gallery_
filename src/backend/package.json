@@ -9,7 +9,7 @@
     "test": "jest"
   },
   "keywords": [],
-  "author": "",
+  "author": "Mohammad Ghouse <mohammadghouse.virtuoso@gmail.com> (https://github.com/Mohammad-Ghouse-virtuoso)",
   "license": "ISC",
   "type": "commonjs",
   "engines": {

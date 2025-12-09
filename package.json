@@ -2,6 +2,7 @@
   "name": "cookie-gallery",
   "private": true,
   "version": "0.0.0",
+  "author": "Mohammad Ghouse <mohammadghouse.virtuoso@gmail.com> (https://github.com/Mohammad-Ghouse-virtuoso)",
   "type": "module",
   "scripts": {
     "dev": "vite",

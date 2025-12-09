@@ -316,8 +316,10 @@ export default function Home() {
 
           <div className="w-full md:w-auto flex flex-col md:flex-row items-center justify-between gap-6">
             <p className="opacity-70">"Life is what you bake it!"</p>
-            <div className="text-xs">
+            <div className="text-xs flex items-center gap-3">
               <Link to="/privacy" className="underline underline-offset-2 hover:text-[color:#dba661] transition-colors">Privacy Policy</Link>
+              <span className="opacity-50">•</span>
+              <span className="opacity-70">Built with 💜 by <a href="https://github.com/Mohammad-Ghouse-virtuoso" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[color:#dba661] transition-colors">Mohammad Ghouse</a></span>
             </div>
           </div>
         </div>

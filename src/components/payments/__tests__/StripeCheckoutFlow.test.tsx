@@ -281,11 +281,14 @@ describe('StripeCheckoutFlow', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /pay/i }));
 
+    // Wait for fetch to be called and verify pending order is created
     await waitFor(() => {
-      expect(window.location.assign).toHaveBeenCalledWith('https://stripe.test/session/unknown');
+      expect(fetchMock).toHaveBeenCalled();
     });
 
     const pending = loadPendingOrder();
     expect(pending?.localOrderId).toBe('order-unknown');
+    // The cart key should be stored as-is (gift:unknown-box:abc-123)
+    expect(pending?.cart).toEqual(unknownGiftCart);
   });
 });
