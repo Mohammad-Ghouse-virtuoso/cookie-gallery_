@@ -14,7 +14,7 @@ import { checkoutPageEnabled } from '@/config/features';
 import type { CartLineItemDetail, CartStateWithMeta } from '@/types/cart';
 
 export default function NavBar() {
-  const { user, loading, authDisabled, signOutUser } = useAuth();
+  const { user, loading, authDisabled, signOutUser, guestMode, setGuestMode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { cart, setCart } = useCart();
@@ -169,9 +169,13 @@ export default function NavBar() {
                 >
                   {user?.photoURL ? (
                     <img src={user.photoURL} alt="avatar" className="w-9 h-9 rounded-full object-cover block" />
+                  ) : guestMode ? (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white font-bold flex items-center justify-center shadow-md">
+                      G
+                    </div>
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-[#5b3a20] text-white font-semibold flex items-center justify-center">
-                      {(user?.email || user?.phoneNumber || 'G').slice(0,1).toUpperCase()}
+                      {(user?.email || user?.phoneNumber || 'U').slice(0,1).toUpperCase()}
                     </div>
                   )}
                 </button>
@@ -188,10 +192,10 @@ export default function NavBar() {
                     {/* User info header */}
                     <div className="px-4 py-3 bg-gradient-to-r from-[#fdf6ec] to-[#f8eddc]">
                       <p className="text-sm font-semibold text-[#5b3a20] truncate">
-                        {user?.displayName || user?.email || user?.phoneNumber || 'Guest'}
+                        {user?.displayName || user?.email || user?.phoneNumber || (guestMode ? 'Guest Explorer 🍪' : 'Guest')}
                       </p>
                       <p className="text-xs text-[#8b6914] truncate mt-0.5">
-                        {user?.email || user?.phoneNumber || 'Guest checkout enabled'}
+                        {user?.email || user?.phoneNumber || (guestMode ? 'Browsing without an account' : 'Guest checkout enabled')}
                       </p>
                     </div>
                     
@@ -206,6 +210,21 @@ export default function NavBar() {
                       <FiPackage className="w-4 h-4 text-[#dba661]" />
                       <span className="font-medium">My Orders</span>
                     </button>
+                    
+                    {/* Sign In button for guests */}
+                    {guestMode && !user && (
+                      <button
+                        onClick={() => {
+                          setShowAvatarMenu(false);
+                          setGuestMode(false);
+                          navigate('/signin');
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-[#5b3a20] hover:bg-[#fdf6ec] transition-colors duration-150 cursor-pointer border-t border-[#dba661]/10"
+                      >
+                        <FiLogOut className="w-4 h-4 text-[#dba661] rotate-180" />
+                        <span className="font-medium">Sign In</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

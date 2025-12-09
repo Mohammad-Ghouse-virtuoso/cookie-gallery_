@@ -42,6 +42,8 @@ interface AuthContextType {
   bootChecked: boolean; // True after /health boot id is checked
   authDisabled: boolean; // True when Firebase config missing or init failed
   signOutUser: () => Promise<void>; // Function to sign out
+  guestMode: boolean; // True when browsing as guest (no account)
+  setGuestMode: (enabled: boolean) => void; // Enable/disable guest mode
 }
 
 // Create the context
@@ -65,7 +67,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [bootChecked, setBootChecked] = useState(isE2ETestMode); // Becomes true after /health processed
   const [reloadChecked, setReloadChecked] = useState(isE2ETestMode); // ensures we process refresh policy exactly once
   const [authDisabled, setAuthDisabled] = useState(isE2ETestMode); // If Firebase config missing or init fails
+  const [guestMode, setGuestModeState] = useState(() => {
+    // Initialize from sessionStorage on mount
+    try {
+      return sessionStorage.getItem('cg_guest_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const sessionTracked = useRef(false); // Track session only once per app load
+
+  // Guest mode setter that syncs to sessionStorage
+  const setGuestMode = (enabled: boolean) => {
+    setGuestModeState(enabled);
+    try {
+      if (enabled) {
+        sessionStorage.setItem('cg_guest_mode', 'true');
+      } else {
+        sessionStorage.removeItem('cg_guest_mode');
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  };
 
   // Helper to verify minimal Firebase config presence (avoid throwing in dev)
   const hasConfig = Boolean(
@@ -278,7 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, bootChecked, authDisabled, signOutUser }}>
+    <AuthContext.Provider value={{ user, loading, bootChecked, authDisabled, signOutUser, guestMode, setGuestMode }}>
       {children}
     </AuthContext.Provider>
   );

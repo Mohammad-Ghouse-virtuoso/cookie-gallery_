@@ -12,7 +12,6 @@ import {
 } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { setGuestMode } from '../components/ProtectedRoutes';
 
 // IMPORTANT: Assume you have a file at this path.
 import googleLogoUrl from '../assets/google-icon.svg';
@@ -25,7 +24,7 @@ declare global {
 }
 
 export default function SignIn() {
-  const { user, loading, authDisabled } = useAuth();
+  const { user, loading, authDisabled, setGuestMode } = useAuth();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState<any>(null);

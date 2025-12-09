@@ -241,6 +241,43 @@ function DemoModeBanner() {
   );
 }
 
+// Quirky guest mode banner
+function GuestModeBanner() {
+  return (
+    <div className="mb-6 p-5 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 border border-purple-200/60 rounded-2xl">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 flex items-center justify-center flex-shrink-0 shadow-md">
+          <span className="text-2xl">🍪</span>
+        </div>
+        <div className="flex-1">
+          <h4 className="font-bold text-purple-900 text-lg">Hey there, mysterious cookie lover! 👋</h4>
+          <p className="text-sm text-purple-700 mt-1 mb-4 leading-relaxed">
+            You're browsing incognito—we like your style! ✨<br />
+            Order history? That's for signed-in folks.<br />
+            <span className="font-medium">But here's a cookie for the road: 🍪</span>
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/cookies"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-[#D9845A] via-[#C97550] to-[#B86648] text-white rounded-xl text-sm font-semibold shadow-md hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
+            >
+              <FiShoppingBag className="w-4 h-4" />
+              Grab Some Cookies
+            </Link>
+            <Link
+              to="/signin"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-purple-200 rounded-xl text-sm font-medium text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all shadow-sm"
+            >
+              <FcGoogle className="w-4 h-4" />
+              Sign in to track orders
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Fetch orders from Firestore API
 async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -273,7 +310,7 @@ async function fetchFirestoreOrders(idToken: string): Promise<SessionOrder[]> {
 }
 
 export default function OrdersPage() {
-  const { user } = useAuth();
+  const { user, guestMode } = useAuth();
   const [firestoreOrders, setFirestoreOrders] = useState<SessionOrder[]>([]);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersSource, setOrdersSource] = useState<'session' | 'firestore'>('session');
@@ -332,6 +369,9 @@ export default function OrdersPage() {
         {/* Demo Mode Banner for test users */}
         {isTestUser && <DemoModeBanner />}
         
+        {/* Guest Mode Banner */}
+        {guestMode && !user && <GuestModeBanner />}
+        
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Profile Sidebar */}
           <aside className="lg:col-span-1">
@@ -344,20 +384,28 @@ export default function OrdersPage() {
                     alt="Profile" 
                     className="w-20 h-20 rounded-full object-cover mx-auto ring-4 ring-[#FBE9DA] shadow-sm"
                   />
+                ) : guestMode ? (
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 text-white text-3xl font-bold flex items-center justify-center mx-auto shadow-lg ring-4 ring-purple-100">
+                    G
+                  </div>
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#5b3a20] to-[#8B5A2B] text-white text-2xl font-bold flex items-center justify-center mx-auto shadow-sm">
-                    {(user?.displayName || user?.email || user?.phoneNumber || 'G').slice(0, 1).toUpperCase()}
+                    {(user?.displayName || user?.email || user?.phoneNumber || 'U').slice(0, 1).toUpperCase()}
                   </div>
                 )}
                 <h2 className="mt-3 font-semibold text-[#3B2B1A] text-lg">
-                  {user?.displayName || 'Cookie Lover'}
+                  {user?.displayName || (guestMode ? 'Mystery Cookie Lover' : 'Cookie Lover')}
                 </h2>
                 <p className="text-sm text-gray-500 truncate px-2">
-                  {user?.email || user?.phoneNumber || 'Guest'}
+                  {user?.email || user?.phoneNumber || (guestMode ? '🕵️ Browsing incognito' : 'Guest')}
                 </p>
-                <span className="inline-flex items-center gap-1.5 mt-2 px-3 py-1 text-xs font-medium bg-[#FBE9DA] text-[#8B5A2B] rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C47A41]" />
-                  Signed in via {authLabel}
+                <span className={`inline-flex items-center gap-1.5 mt-2 px-3 py-1 text-xs font-medium rounded-full ${
+                  guestMode && !user 
+                    ? 'bg-gradient-to-r from-violet-100 to-purple-100 text-purple-700' 
+                    : 'bg-[#FBE9DA] text-[#8B5A2B]'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${guestMode && !user ? 'bg-purple-500' : 'bg-[#C47A41]'}`} />
+                  {guestMode && !user ? 'Guest Explorer' : `Signed in via ${authLabel}`}
                 </span>
               </div>
               
