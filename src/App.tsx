@@ -62,36 +62,34 @@ function AppContent() {
       {!hideNav && <CartPersistenceBanner />}
 
       <Routes>
-        {/* Unprotected routes (don't have a NavBar) */}
+        {/* Unprotected routes (no auth required) */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signed-out" element={<SignedOut />} />
         <Route path="/order-success" element={<OrderSuccess />} />
         <Route path="/receipt" element={<Receipt />} />
         <Route path="/social/:platform" element={<SocialComingSoon />} />
         
-        {/* Public routes (guests can browse and checkout) */}
-        <Route index element={<Home />} />
-        <Route path="home" element={<Home />} />
-        <Route path="cookies" element={<CookieCatalogue />} />
-        <Route path="product/:cookieId" element={<ProductDetailPage />} />
-        <Route
-          path="checkout"
-          element={checkoutPageEnabled ? <CheckoutPage /> : <CheckoutLegacy />}
-        />
-        <Route
-          path="checkout/address"
-          element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
-        />
-        <Route path="payment-status" element={<PaymentStatusPage />} />
-        <Route path="story" element={<Story />} />
-        <Route path="behind-the-scenes" element={<BehindTheScenes />} />
-        <Route path="privacy" element={<PrivacyPolicy />} />
-        <Route path="golden-season" element={<GoldenSeason />} />
-        <Route path="gift/:boxId" element={<GiftExperiencePage />} />
-        
-        {/* Protected routes (require sign-in) */}
+        {/* Protected routes (require sign-in OR guest mode) */}
         <Route path="/" element={<ProtectedRoutes />}>
+          <Route index element={<Home />} />
+          <Route path="home" element={<Home />} />
+          <Route path="cookies" element={<CookieCatalogue />} />
+          <Route path="product/:cookieId" element={<ProductDetailPage />} />
+          <Route
+            path="checkout"
+            element={checkoutPageEnabled ? <CheckoutPage /> : <CheckoutLegacy />}
+          />
+          <Route
+            path="checkout/address"
+            element={checkoutPageEnabled ? <CheckoutAddressRedirect /> : <CheckoutAddressPage />}
+          />
+          <Route path="payment-status" element={<PaymentStatusPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="story" element={<Story />} />
+          <Route path="behind-the-scenes" element={<BehindTheScenes />} />
+          <Route path="privacy" element={<PrivacyPolicy />} />
+          <Route path="golden-season" element={<GoldenSeason />} />
+          <Route path="gift/:boxId" element={<GiftExperiencePage />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
