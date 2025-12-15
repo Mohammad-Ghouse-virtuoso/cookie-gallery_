@@ -93,4 +93,4 @@ MIT
 
 ---
 
-**Built by [Mohammad Ghouse](https://github.com/Mohammad-Ghouse-virtuoso)** 🍪.
+**Built by [Mohammad Ghouse](https://github.com/Mohammad-Ghouse-virtuoso)** 🍪
